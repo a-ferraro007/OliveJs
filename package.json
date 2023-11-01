@@ -3,6 +3,6 @@
   "version": "0.0.1",
   "description": "Repo for Olive",
   "workspaces": [
-    "packages/*"
+    "packages/olive"
   ]
 }
