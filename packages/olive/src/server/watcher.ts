@@ -1,14 +1,14 @@
 import chokidar from "chokidar"
-import { Compiler } from "./bundler"
+import { Bundler } from "./bundler"
 import fs from "node:fs"
 
 export class Watcher {
   private opts: any
-  private compiler: Compiler
+  private bundler: Bundler
 
-  constructor(opts: any, compiler: any) {
+  constructor(opts: any, bundler: any) {
     this.opts = opts
-    this.compiler = compiler
+    this.bundler = bundler
   }
 
   startWatcher = () => {
@@ -28,7 +28,7 @@ export class Watcher {
       this.removeStaleJSBuilds()
       console.log(`\n Change detected - ${stats}`)
       console.log("🫒 Rebuilding...")
-      await this.compiler.compile()
+      await this.bundler.bundle()
     })
   }
 
