@@ -10,7 +10,7 @@
   "script": {
     "start": "bun run cli.ts"
   },
-  "files": ["src/", "cli.ts", "build.ts", "dev.ts", "start.ts", "package.json"],
+  "files": ["src/", "cli.ts", "dev.ts", "package.json"],
   "dependencies": {
     "arg": "^5.0.2",
     "chokidar": "^3.5.3",
