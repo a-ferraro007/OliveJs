@@ -1,0 +1,25 @@
+{
+  "name": "olive",
+  "version": "0.0.1",
+  "main": "cli.ts",
+  "type": "module",
+  "description": "test framework",
+  "bin": {
+    "olive": "cli.ts"
+  },
+  "script": {
+    "start": "bun run cli.ts"
+  },
+  "files": ["src/", "cli.ts", "build.ts", "dev.ts", "start.ts", "package.json"],
+  "dependencies": {
+    "arg": "^5.0.2",
+    "chokidar": "^3.5.3",
+    "mrmime": "^1.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "serve-static-bun": "^0.5.3"
+  },
+  "devDependencies": {
+    "bun-types": "^1.0.3"
+  }
+}
