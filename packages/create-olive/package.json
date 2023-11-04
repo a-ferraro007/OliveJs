@@ -3,17 +3,17 @@
 	"module": "index.ts",
 	"main": "index.ts",
 	"type": "module",
-	"version": "0.0.2",
-    "repository": {
-        "type": "git",
-        "url":"https://github.com/a-ferraro007/olive-js", 
-        "directory": "packages/create-olive"
-    },
+	"version": "0.0.20",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/a-ferraro007/olive-js",
+		"directory": "packages/create-olive"
+	},
 	"bin": {
 		"create-olive": "index.ts"
 	},
 	"devDependencies": {
-		"@types/prompts": "^2.4.4",
+		"@types/prompts": "^2.4.7",
 		"bun-types": "latest"
 	},
 	"peerDependencies": {
