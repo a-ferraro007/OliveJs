@@ -1,16 +1,16 @@
 {
 	"name": "create-olive",
 	"module": "index.ts",
-	"main": "index.ts",
+	"main": "index.mjs",
 	"type": "module",
-	"version": "0.0.1",
+	"version": "0.0.100",
     "repository": {
         "type": "git",
         "url":"https://github.com/a-ferraro007/olive-js", 
         "directory": "packages/create-olive"
     },
 	"bin": {
-		"create-olive": "index.ts"
+		"create-olive": "index.mjs"
 	},
 	"devDependencies": {
 		"@types/prompts": "^2.4.4",
