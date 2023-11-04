@@ -3,7 +3,7 @@
 	"module": "index.ts",
 	"main": "index.ts",
 	"type": "module",
-	"version": "0.0.100003",
+	"version": "0.0.2",
     "repository": {
         "type": "git",
         "url":"https://github.com/a-ferraro007/olive-js", 
@@ -22,8 +22,5 @@
 	"dependencies": {
 		"arg": "^5.0.2",
 		"prompts": "^2.4.2"
-	},
-    "trustedDependencies": [
-        "create-olive"
-      ]
+	}
 }
