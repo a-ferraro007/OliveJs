@@ -1,7 +1,7 @@
 {
 	"name": "create-olive",
 	"module": "index.ts",
-	"main": "index.mjs",
+	"main": "index.ts",
 	"type": "module",
 	"version": "0.0.100",
     "repository": {
@@ -10,7 +10,7 @@
         "directory": "packages/create-olive"
     },
 	"bin": {
-		"create-olive": "index.mjs"
+		"create-olive": "./index.ts"
 	},
 	"devDependencies": {
 		"@types/prompts": "^2.4.4",
