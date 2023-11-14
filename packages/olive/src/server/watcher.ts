@@ -1,43 +1,68 @@
 import chokidar from "chokidar"
 import { Bundler } from "./bundler"
 import fs from "node:fs"
+import path from "path"
+import { WatcherConfig } from "../../types"
 
 export class Watcher {
-  private opts: any
+  private config: WatcherConfig
   private bundler: Bundler
 
-  constructor(opts: any, bundler: any) {
-    this.opts = opts
+  constructor(config: any, bundler: any) {
+    this.config = config
     this.bundler = bundler
   }
 
   startWatcher = () => {
-    const watcher = chokidar.watch([`./${this.opts.srcDir}/**`, `./${this.opts.outDir}/*`], {
+    const watcher = chokidar.watch([`./${this.config.appDirectory}/**`, `./${this.config.buildDirectory}/*`], {
       ignored: [
         /(^|[\/\\])\../,
         "*/node_modules/**",
-        `./${this.opts.outDir}/index.html`,
-        `./${this.opts.outDir}/*.js`,
-        `./${this.opts.outDir}/*.js.map`,
+        `./${this.config.buildDirectory}/index.html`,
+        `./${this.config.buildDirectory}/*.js`,
+        `./${this.config.buildDirectory}/*.js.map`,
+        `./${this.config.buildDirectory}/*.css`
       ],
       persistent: true,
       ignoreInitial: true,
     })
 
-    watcher.on("all", async (event, stats) => {
-      this.removeStaleJSBuilds()
-      console.log(`\n Change detected - ${stats}`)
-      console.log("🫒 Rebuilding...")
+    watcher.on("all", async (_, stats) => {
+      console.time('🚀 rebuilt')
+      console.log(`\n🫒 rebuilding... (~ ${stats})`)
+
+      this.handlebuildDirectory()
       await this.bundler.bundle()
+
+      console.timeEnd('🚀 rebuilt')
     })
+  }
+
+  private handlebuildDirectory = () => {
+    const outPath = path.resolve(this.config.buildDirectory)
+    try {
+      fs.rmSync(outPath, { recursive: true })
+      fs.mkdirSync(outPath)
+    } catch (e) {
+      console.log(e)
+    }
   }
 
   private removeStaleJSBuilds = () => {
     const regex = /^index-[A-Za-z0-9]+\.js|index-[A-Za-z0-9]+\.js.map$/
-    const files = fs.readdirSync(this.opts.outDir)
+    const files = fs.readdirSync(this.config.buildDirectory)
     files.forEach(
       (name) =>
-        regex.test(name) && fs.unlinkSync(`./${this.opts.outDir}/${name}`)
+        regex.test(name) && fs.unlinkSync(`./${this.config.buildDirectory}/${name}`)
+    )
+  }
+
+  private removeStaleCSSBuilds = () => {
+    const regex = /^styles-[A-Za-z0-9]+\.css$/
+    const files = fs.readdirSync(this.config.buildDirectory)
+    files.forEach(
+      (name) =>
+        regex.test(name) && fs.unlinkSync(`./${this.config.buildDirectory}/${name}`)
     )
   }
 }

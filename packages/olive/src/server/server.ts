@@ -1,48 +1,25 @@
 import fs from "node:fs"
-import { EventEmitter } from "node:events"
-import { Server as BunServer } from "bun"
 import { Watcher } from "./watcher"
 import { Bundler } from "./bundler"
-import { Middleware } from "./types"
-import { WrappedResponse } from "./wrapped-response"
 import { Chain } from "./chain"
+import { readConfig } from "./config"
+import { EventEmitter } from "node:events"
+import { Server as BunServer } from "bun"
+import { Middleware, Mode, OliveConfig } from "../../types"
+import { WrappedResponse } from "./wrapped-response"
 
-export function server() {
+
+export async function server() {
   return Server.instance
 }
 
-var mediaType = {
-  "text/html": "html",
-  "text/plain": "plain",
-  "application/json": "json",
-}
-
-const __MODE__ = "development"
-const __OUTDIR__ = "dist"
 const __BASE_URL__ = "http://localhost:3000"
-const __BUILD_OPTS_DEV__ = {
-  entrypoints: ["src/index.tsx"],
-  outdir: `./${__OUTDIR__}`,
-  naming: "[dir]/[name]-[hash].[ext]",
-  splitting: true,
-  sourcemap: 'external'
-}
-
-const __Bundler_OPTS__ = {
-  mode: "development",
-  outDir: __OUTDIR__,
-  buildOpts: __BUILD_OPTS_DEV__,
-}
-
-const __WATCHER_OPTS__ = {
-  mode: "development",
-  outDir: __OUTDIR__,
-  srcDir: "src",
-}
 
 class Server {
   private static server?: Server
-  BundlerEmitter: EventEmitter | undefined
+  private readonly middlewares: Middleware[] = []
+  BundlerEmitter?: EventEmitter
+  config!: OliveConfig
 
   constructor() {
     if (Server.server) {
@@ -52,26 +29,43 @@ class Server {
   }
 
   static get instance() {
-    return Server.server ?? (Server.server = new Server())
+    if (Server.server) return Server.server
+    return (async () => {
+      Server.server = new Server()
+      try {
+        Server.server.config = await readConfig()
+        return  Server.server
+      } catch (error) {
+        throw(error)
+      }
+    })()
   }
 
   listen(port: string | number, callback: () => void, options?: any) {
     if (callback) callback()
-    const c = new Bundler(__Bundler_OPTS__)
-    const w = new Watcher(__WATCHER_OPTS__, c)
+    
+    const b = new Bundler(this.config.bundlerConfig, this.config.mode)
+    const w = new Watcher({
+      mode: this.config.mode, 
+      buildDirectory: this.config.buildDirectory, 
+      appDirectory: this.config.appDirectory
+    }, b)
 
-    this.BundlerEmitter = c.emitter
-    c.bundle()
+    this.BundlerEmitter = b.emitter
+    b.bundle()
     w.startWatcher()
     return this.openServer(port, __BASE_URL__, options)
   }
-
-  private readonly middlewares: Middleware[] = []
+  
   async baseMiddleware(req: Request, res: WrappedResponse, next: any) {
     const path = req.url.replace(__BASE_URL__, "")
+    if (this.config.mode === Mode.Development) {
+      const path = await import.meta.resolve("../client/client.js")
+      res.send(Bun.write(`${this.config.buildDirectory}/client.js`, Bun.file(path)))
+    }
 
     if (path === "/") {
-      res.send(Bun.file(`${__OUTDIR__}/index.html`))
+      res.send(Bun.file(`${this.config.buildDirectory}/index.html`))
       next()
       return
     }
@@ -100,10 +94,10 @@ class Server {
 
     return Bun.serve({
       port,
-      development: __MODE__ === "development",
+      development: this.config.mode === Mode.Development,
       websocket: {
         open: async (ws) => {
-          this.BundlerEmitter?.addListener("bundle", (buildResult) => {
+          this.BundlerEmitter?.addListener("bundle", () => {
             ws.send("reload")
           })
         },
@@ -111,7 +105,7 @@ class Server {
       },
       async fetch(req) {
         const path = req.url.replace(__BASE_URL__, "")
-        if (path === "/__live_reload_ws__" && __MODE__ === "development") {
+        if (path === "/__live_reload_ws__" && _this.config.mode === Mode.Development) {
           const upgraded = this.upgrade(req)
           if (!upgraded) {
             return new Response(

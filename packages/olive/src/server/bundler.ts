@@ -1,60 +1,72 @@
+import { BuildArtifact } from "bun"
 import {EventEmitter} from "node:events"
+import { BundlerConfig, Mode } from "../../types"
 
 class Bundler extends EventEmitter {
-  private opts: any
+  private config: BundlerConfig
+  private mode: Mode
   emitter: EventEmitter
   
-  constructor(opts: any) {
+  constructor(config: BundlerConfig, mode: Mode) {
     super()
-    this.opts = opts
+    this.mode = mode
+    this.config = config
     this.emitter = this
   }
 
   bundle = async () => {
     try {
-      const buildResult = await Bun.build({
+      const build = await Bun.build({
         entrypoints: [`./src/index.tsx`],
-        outdir: `./${this.opts.outDir}`,
+        outdir: `./${this.config.outDir}`,
         naming: "[dir]/[name]-[hash].[ext]",
         splitting: true,
         format: 'esm',
-        sourcemap: 'external'
+        sourcemap: this.config.sourcemap
       })
-      if (!buildResult.success) {
+
+      if (!build.success) {
         console.error("Build failed")
-        for (const message of buildResult.logs) {
+        for (const message of build.logs) {
           console.error(message)
         }
       }
+      
+      const jsBuildHash = build?.outputs[0].hash
+      const cssBuildHash = build?.outputs.find((artifact: BuildArtifact) =>{
+        return artifact.path.includes('css')
+      })?.hash
 
-      const buildHash = buildResult?.outputs[0].hash
-      if (!buildHash) return
+      if (!jsBuildHash || !cssBuildHash) return
 
-      const html = this.buildHTMLDocument(buildHash, this.opts.buildOpts.sourcemap === 'external')
-      Bun.write(`${this.opts.outDir}/index.html`, html)
-      this.emitter.emit('bundle', buildResult )
+      const html = this.buildHTMLDocument(jsBuildHash, cssBuildHash, this.config.sourcemap === 'external')
+      Bun.write(`${this.config.outDir}/index.html`, html)
+      this.emitter.emit('bundle', build )
     } catch (error) {
       console.error(error)
       throw error
     }
   }
 
-  private buildHTMLDocument = (hash: string, sourcemap: boolean) => {
-    return `
-    <!DOCTYPE html>
+  private buildHTMLDocument = (jsHash: string, cssHash: string, sourcemap: boolean) => {
+    return `<!DOCTYPE html>
         <html lang="en">
             <head>
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <link rel="manifest" href="/out/manifest.json">
-                <link rel="shortcut icon" href="/out/favicon.ico">
+                <link rel="manifest" href="/${this.config.outDir}/manifest.json">
+                <link rel="shortcut icon" href="/${this.config.outDir}/favicon.ico">
+
                 <title>Your React App Title</title>
+
+                <link rel="stylesheet" type="text/css" href="/${this.config.outDir}/styles-${cssHash}.css" />
+                <script type="module" src="/${this.config.outDir}/index-${jsHash}.js"></script>
+                ${sourcemap ? `<script type="application/json" src="/${this.config.outDir}/index-${jsHash}.js.map"></script>` : ''}
+                ${this.mode === Mode.Development && `<script type="module" src="/${this.config.outDir}/client.js"></script>`}
             </head>
             <body>
+                <noscript>You need to enable JavaScript to run this app.</noscript>
                 <div id="root"></div>
-                <script type="module" src="/${this.opts.outDir}/index-${hash}.js"></script>
-               ${ sourcemap && `<script type="module" src="/${this.opts.outDir}/index-${hash}.js.map"></script>`}
-                <script type="module" src="/${this.opts.outDir}/client.js"></script>
             </body>
         </html>`
   }

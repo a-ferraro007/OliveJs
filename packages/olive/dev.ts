@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
-
 import arg from "arg"
 import {server} from './src/server/server'
 
+const app = await server()
+const {config} = app 
 
-const app = server()
+console.log({config});
 
-app.listen(3000, () => {
-    console.log("Server is listening on port 3000")
+app.listen(config.port, () => {
+    console.log(`Server is listening on port ${config.port}`)
 })
