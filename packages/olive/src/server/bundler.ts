@@ -43,6 +43,7 @@ class Bundler extends EventEmitter {
       const html = this.buildHTMLDocument(jsBuildHash, cssBuildHash, this.config.sourcemap === 'external')
       Bun.write(`${this.config.outDir}/index.html`, html)
       if(this.mode === Mode.Development) this.emitter.emit('bundle', build )
+      return build
     } catch (error) {
       console.error(error)
       throw error
