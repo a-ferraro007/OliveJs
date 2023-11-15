@@ -57,7 +57,7 @@ class Server {
     return this.openServer(port, __BASE_URL__, options)
   }
   
-  async baseMiddleware(req: Request, res: WrappedResponse, next: any) {
+   baseMiddleware = async (req: Request, res: WrappedResponse, next: any) => {
     const path = req.url.replace(__BASE_URL__, "")
     if (this.config.mode === Mode.Development) {
       const path = await import.meta.resolve("../client/client.js")
@@ -94,7 +94,7 @@ class Server {
 
     return Bun.serve({
       port,
-      development: this.config.mode === Mode.Development,
+      development: _this.config.mode === Mode.Development,
       websocket: {
         open: async (ws) => {
           this.BundlerEmitter?.addListener("bundle", () => {
