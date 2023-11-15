@@ -11,6 +11,6 @@ import { readConfig } from "./src/server/config"
   
     if (fs.existsSync(filePath)) fs.rmSync(config.buildDirectory, {recursive: true, force: true})  
     const bundler = new Bundler(config)
-    const b = bundler.bundle()
+    const b = await bundler.bundle()
     console.log({b})
 })() 
