@@ -56,14 +56,14 @@ class Bundler extends EventEmitter {
             <head>
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <link rel="manifest" href="/${this.config.outDir}/manifest.json">
-                <link rel="shortcut icon" href="/${this.config.outDir}/favicon.ico">
+                <link rel="manifest" href="${this.mode === Mode.Production ? '/vercel/path0' : ''}/${this.config.outDir}/manifest.json">
+                <link rel="shortcut icon" href="${this.mode === Mode.Production ? '/vercel/path0' : ''}/${this.config.outDir}/favicon.ico">
 
                 <title>Your React App Title</title>
 
-                <link rel="stylesheet" type="text/css" href="/${this.config.outDir}/styles-${cssHash}.css" />
-                <script type="module" src="/${this.config.outDir}/index-${jsHash}.js"></script>
-                ${sourcemap ? `<script type="application/json" src="/${this.config.outDir}/index-${jsHash}.js.map"></script>` : ''}
+                <link rel="stylesheet" type="text/css" href="${this.mode === Mode.Production ? '/vercel/path0' : ''}/${this.config.outDir}/styles-${cssHash}.css" />
+                <script type="module" src="${this.mode === Mode.Production ? '/vercel/path0' : ''}/${this.config.outDir}/index-${jsHash}.js"></script>
+                ${sourcemap ? `<script type="application/json" src="${this.mode === Mode.Production ? '/vercel/path0' : ''}/${this.config.outDir}/index-${jsHash}.js.map"></script>` : ''}
                 ${this.mode === Mode.Development ? `<script type="module" src="/${this.config.outDir}/client.js"></script>` : ''}
             </head>
             <body>
