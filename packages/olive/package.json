@@ -1,6 +1,6 @@
 {
-  "name": "olive",
-  "version": "0.0.1",
+  "name": "olivejs-test",
+  "version": "0.0.4",
   "main": "cli.ts",
   "type": "module",
   "description": "test framework",

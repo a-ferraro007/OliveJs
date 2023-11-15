@@ -19,25 +19,23 @@ const isValidMode = (mode: Mode | undefined): boolean =>  {
     const stat = fs.statSync(filePath)
     const file = await import(pathToFileURL(filePath).href + "?=" + stat.mtimeMs)
     const config = file?.default
-    if(!isValidMode(config?.mode)) {
+    if(!isValidMode(process.env.MODE as Mode)) {
       throw new Error("Error: invalid mode")
     }
   
     appConfig = {
-      port: config?.port ?? 3000, 
-      mode: config?.mode,
-      buildDirectory: config?.buildDirectory ?? "dist",
-      appDirectory: config?.appDirectory ?? "app",
-      entrypoints: config?.entrypoints,
-      publicPath: config?.publicPath ?? "/dist/", 
-      bundlerConfig: {
-        outDir: config?.buildDirectory ?? "dist",
-        minify: config?.mode === Mode.Production || config?.bundlerConfig?.minify === true, 
-        splitting: config?.mode === Mode.Production || config?.bundlerConfig?.splitting === true, 
-        sourcemap: config?.bundlerConfig?.sourcemap ?? 'inline', 
+        port: config?.port ?? 3000, 
+        mode: process.env.MODE as Mode,
+        buildDirectory: process.env.MODE === Mode.Production ? "build" : (config?.buildDirectory ?? "dist"),
+        appDirectory: config?.appDirectory ?? "app",
+        entrypoints: config?.entrypoints,
+        publicPath: config?.publicPath ?? "/dist/", 
+        outDir: process.env.MODE === Mode.Production ? "build" : (config?.buildDirectory ?? "dist"),
+        minify: process.env.MODE === Mode.Production || config?.bundlerConfig?.minify === true, 
+        splitting: process.env.MODE === Mode.Production || config?.bundlerConfig?.splitting === true, 
+        sourcemap: process.env.MODE === Mode.Production ? 'none' : (config?.bundlerConfig?.sourcemap ?? 'inline' ), 
         format: config?.bundlerConfig?.format ?? 'esm', 
         plugins: config?.plugins ?? []
-      }
     }
   
     return appConfig

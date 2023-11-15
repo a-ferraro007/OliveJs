@@ -41,12 +41,12 @@ class Server {
     })()
   }
 
-  listen(port: string | number, callback: () => void, options?: any) {
+  listen(mode: Mode, callback: () => void, options?: any) {
     if (callback) callback()
     
-    const b = new Bundler(this.config.bundlerConfig, this.config.mode)
+    const b = new Bundler(this.config)
     const w = new Watcher({
-      mode: this.config.mode, 
+      mode: mode, 
       buildDirectory: this.config.buildDirectory, 
       appDirectory: this.config.appDirectory
     }, b)
@@ -54,10 +54,10 @@ class Server {
     this.BundlerEmitter = b.emitter
     b.bundle()
     w.startWatcher()
-    return this.openServer(port, __BASE_URL__, options)
+    return this.openServer(this.config.port ?? 3000, mode, __BASE_URL__, options)
   }
   
-   baseMiddleware = async (req: Request, res: WrappedResponse, next: any) => {
+  baseMiddleware = async (req: Request, res: WrappedResponse, next: any) => {
     const path = req.url.replace(__BASE_URL__, "")
     if (this.config.mode === Mode.Development) {
       const path = await import.meta.resolve("../client/client.js")
@@ -83,6 +83,7 @@ class Server {
 
   private openServer(
     port: string | number,
+    mode: Mode, 
     baseUrl: string,
     options?: any
   ): BunServer {
@@ -94,7 +95,7 @@ class Server {
 
     return Bun.serve({
       port,
-      development: _this.config.mode === Mode.Development,
+      development: mode === Mode.Development,
       websocket: {
         open: async (ws) => {
           this.BundlerEmitter?.addListener("bundle", () => {

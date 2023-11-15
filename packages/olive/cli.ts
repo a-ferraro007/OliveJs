@@ -20,6 +20,9 @@ switch(command) {
 	case 'dev':
 		import('./dev')
 		break
+	case 'build':
+		import('./build')
+		break
 	default:
 		console.log(`Unknown command: ${command}`)
 		process.exit(1)

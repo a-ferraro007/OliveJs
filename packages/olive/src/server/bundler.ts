@@ -1,15 +1,15 @@
 import { BuildArtifact } from "bun"
 import {EventEmitter} from "node:events"
-import { BundlerConfig, Mode } from "../../types"
+import {  Mode, OliveConfig } from "../../types"
 
 class Bundler extends EventEmitter {
-  private config: BundlerConfig
+  private config: OliveConfig
   private mode: Mode
   emitter: EventEmitter
   
-  constructor(config: BundlerConfig, mode: Mode) {
+  constructor(config: OliveConfig) {
     super()
-    this.mode = mode
+    this.mode = config.mode
     this.config = config
     this.emitter = this
   }
@@ -17,11 +17,12 @@ class Bundler extends EventEmitter {
   bundle = async () => {
     try {
       const build = await Bun.build({
-        entrypoints: [`./src/index.tsx`],
+        
+        entrypoints: this.createEntryPoints(),
         outdir: `./${this.config.outDir}`,
         naming: "[dir]/[name]-[hash].[ext]",
-        splitting: true,
-        format: 'esm',
+        splitting: this.config.splitting,
+        format: this.config.format,
         sourcemap: this.config.sourcemap
       })
 
@@ -41,7 +42,7 @@ class Bundler extends EventEmitter {
 
       const html = this.buildHTMLDocument(jsBuildHash, cssBuildHash, this.config.sourcemap === 'external')
       Bun.write(`${this.config.outDir}/index.html`, html)
-      this.emitter.emit('bundle', build )
+      if(this.mode === Mode.Development) this.emitter.emit('bundle', build )
     } catch (error) {
       console.error(error)
       throw error
@@ -62,13 +63,21 @@ class Bundler extends EventEmitter {
                 <link rel="stylesheet" type="text/css" href="/${this.config.outDir}/styles-${cssHash}.css" />
                 <script type="module" src="/${this.config.outDir}/index-${jsHash}.js"></script>
                 ${sourcemap ? `<script type="application/json" src="/${this.config.outDir}/index-${jsHash}.js.map"></script>` : ''}
-                ${this.mode === Mode.Development && `<script type="module" src="/${this.config.outDir}/client.js"></script>`}
+                ${this.mode === Mode.Development ? `<script type="module" src="/${this.config.outDir}/client.js"></script>` : ''}
             </head>
             <body>
                 <noscript>You need to enable JavaScript to run this app.</noscript>
                 <div id="root"></div>
             </body>
         </html>`
+  }
+
+  private createEntryPoints = () => {
+    const {entrypoints, appDirectory} = this.config
+    return entrypoints.map((entry) => {
+      const s = entry.replace(/\//g, '')
+      return `${appDirectory}/${s}`
+    })    
   }
 }
 

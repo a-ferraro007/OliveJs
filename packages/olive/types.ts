@@ -1,8 +1,10 @@
 import { WrappedResponse } from "./src/server/wrapped-response"
 
+
 export enum Mode {
-  Development = "development",
-  Production = "production",
+    Development = "development",
+    Production = "production",
+    develop = "develop"
 }
 
 export type Handler = (
@@ -50,5 +52,10 @@ export type OliveConfig = {
   appDirectory: string,
   entrypoints: string[], 
   publicPath: string, 
-  bundlerConfig: BundlerConfig
+  outDir: string, 
+  minify: boolean, 
+  splitting: boolean, 
+  sourcemap: "none" | "inline" | "external" | undefined, 
+  format:  "esm" | undefined, 
+  plugins: string[]
 }
