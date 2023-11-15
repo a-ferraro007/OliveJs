@@ -51,6 +51,8 @@ class Bundler extends EventEmitter {
   }
 
   private buildHTMLDocument = (jsHash: string, cssHash: string, sourcemap: boolean) => {
+    // Work around for vercel deployment - vercel is serviing static build assets 
+    // from the root directory instead of the build directory 
     const outDir = this.mode === Mode.Development ? `/${this.config.outDir}` : ''
     return `<!DOCTYPE html>
         <html lang="en">
@@ -60,7 +62,7 @@ class Bundler extends EventEmitter {
                 <link rel="manifest" href="${outDir}/manifest.json">
                 <link rel="shortcut icon" href="${outDir}/favicon.ico">
 
-                <title>Your React App Title</title>
+                <title>Olivejs - Sandbox</title>
 
                 <link rel="stylesheet" type="text/css" href="${outDir}/styles-${cssHash}.css" />
                 <script type="module" src="${outDir}/index-${jsHash}.js"></script>
