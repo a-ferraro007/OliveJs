@@ -13,8 +13,10 @@ export class Watcher {
     this.bundler = bundler
   }
 
+  // `./${this.config.buildDirectory}/*`
   startWatcher = () => {
-    const watcher = chokidar.watch([`./${this.config.appDirectory}/**`, `./${this.config.buildDirectory}/*`], {
+    this.resetbuildDirectory()
+    const watcher = chokidar.watch([`./${this.config.appDirectory}/**`], {
       ignored: [
         /(^|[\/\\])\../,
         "*/node_modules/**",
@@ -28,17 +30,13 @@ export class Watcher {
     })
 
     watcher.on("all", async (_, stats) => {
-      console.time('🚀 rebuilt')
-      console.log(`\n🫒 rebuilding... (~ ${stats})`)
-
-      this.handlebuildDirectory()
+      this.resetbuildDirectory()
+      this.bundler.stats = stats
       await this.bundler.bundle()
-
-      console.timeEnd('🚀 rebuilt')
     })
   }
 
-  private handlebuildDirectory = () => {
+  private resetbuildDirectory = () => {
     const outPath = path.resolve(this.config.buildDirectory)
     try {
       fs.rmSync(outPath, { recursive: true })

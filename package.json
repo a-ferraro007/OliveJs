@@ -4,5 +4,9 @@
   "description": "Repo for Olive",
   "workspaces": [
     "packages/olive"
-  ]
+  ],
+  "dependencies": {
+    "@types/prompts": "^2.4.9",
+    "postcss": "^8.4.31"
+  }
 }

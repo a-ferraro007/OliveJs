@@ -1,13 +1,13 @@
 import fs from "node:fs"
+import path from "path"
 import { Watcher } from "./watcher"
 import { Bundler } from "./bundler"
 import { Chain } from "./chain"
-import { readConfig } from "./config"
+import { readConfig, readPostCSSConfig } from "./config"
 import { EventEmitter } from "node:events"
 import { Server as BunServer } from "bun"
 import { Middleware, Mode, OliveConfig } from "../../types"
 import { WrappedResponse } from "./wrapped-response"
-
 
 export async function server() {
   return Server.instance
@@ -20,6 +20,7 @@ class Server {
   private readonly middlewares: Middleware[] = []
   BundlerEmitter?: EventEmitter
   config!: OliveConfig
+  postCSSConfig: any
 
   constructor() {
     if (Server.server) {
@@ -34,6 +35,8 @@ class Server {
       Server.server = new Server()
       try {
         Server.server.config = await readConfig()
+        if(await fs.existsSync(path.resolve('./postcss.config.js')))
+        Server.server.postCSSConfig = await readPostCSSConfig()
         return  Server.server
       } catch (error) {
         throw(error)
@@ -43,8 +46,7 @@ class Server {
 
   listen(mode: Mode, callback: () => void, options?: any) {
     if (callback) callback()
-    
-    const b = new Bundler(this.config)
+    const b = new Bundler(this.config, this.postCSSConfig)
     const w = new Watcher({
       mode: mode, 
       buildDirectory: this.config.buildDirectory, 
