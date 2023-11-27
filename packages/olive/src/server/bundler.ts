@@ -2,8 +2,7 @@ import { EventEmitter } from "node:events"
 import { Mode, OliveConfig } from "../../types"
 import Postcss from "postcss"
 import path from "path"
-import fs from "node:fs"
-import postCSSPlugin from "../../postCSSPlugin"
+import postCSSPlugin from "../postCSSPlugin"
 
 const transpiler = new Bun.Transpiler({ loader: "tsx" })
 class Bundler extends EventEmitter {
