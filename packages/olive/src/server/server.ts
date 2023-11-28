@@ -35,7 +35,6 @@ class Server {
       Server.server = new Server()
       try {
         Server.server.config = await readConfig()
-        if(await fs.existsSync(path.resolve('./postcss.config.js')))
         Server.server.postCSSConfig = await readPostCSSConfig()
         return  Server.server
       } catch (error) {

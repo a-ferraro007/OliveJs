@@ -1,6 +1,6 @@
 {
   "name": "olivejs-sandbox",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "main": "cli.ts",
   "type": "module",
   "description": "test framework",
