@@ -33,18 +33,18 @@ const readConfig = async () => {
   const stat = fs.statSync(filePath)
   const file = await import(pathToFileURL(filePath).href + "?=" + stat.mtimeMs)
   const config = file?.default
-  if (!isValidMode(process.env.MODE as Mode)) {
-    throw new Error("Error: invalid mode")
+  if (!isValidMode(config.mode)) {
+    console.error("Error: invalid mode")
   }
 
   appConfig = {
     port: config?.port ?? 3000,
-    mode: process.env.MODE as Mode,
+    mode: process.env.MODE as Mode ?? Mode.Development,
     buildDirectory:
       process.env.MODE === Mode.Production
         ? "build"
         : config?.buildDirectory ?? "dist",
-    appDirectory: config?.appDirectory ?? "app",
+    root: config?.root ?? "app",
     entrypoints: config?.entrypoints ?? "index.tsx",
     publicPath: config?.publicPath ?? "/dist/",
     outDir:

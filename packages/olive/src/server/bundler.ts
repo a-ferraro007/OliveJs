@@ -21,7 +21,7 @@ class Bundler extends EventEmitter {
     this.postCSSConfig = postCSSConfig ?? {plugins: []}
     this.entrypoints = this.resolveEntryPoints(
       config.entrypoints,
-      config.appDirectory
+      config.root
     )
     this.emitter = this
     this.isFirstBundle = true
@@ -33,8 +33,9 @@ class Bundler extends EventEmitter {
     else timeString = "🚀 rebuilt"
 
     console.time(timeString)
-    if (!this.isFirstBundle)
+    if (!this.isFirstBundle) {
       console.log(`\n 🫒 rebuilding... (~ ${this.stats})`)
+    }
 
     const { dependencies, cssImportMap } = await this.resolveDependencies(
       this.entrypoints
@@ -45,9 +46,9 @@ class Bundler extends EventEmitter {
     try {
       const build = await Bun.build({
         entrypoints: this.buildClientEntrypoints(dependencies),
-        root: this.config.appDirectory,
+        root: this.config.root,
         outdir: `./${this.config.outDir}`,
-        minify: this.config.minify,
+        minify: false,
         naming: "[dir]/[name]-[hash].[ext]",
         splitting: this.config.splitting,
         format: this.config.format,
@@ -77,7 +78,7 @@ class Bundler extends EventEmitter {
       console.timeEnd(timeString)
       return build
     } catch (error) {
-      console.error(error)
+      console.error(`Bundle: ${error}`)
       throw error
     }
   }
@@ -101,7 +102,7 @@ class Bundler extends EventEmitter {
 
     for (const entrypoint of entrypoints) {
       const entryKey = startingKey ?? entrypoint
-      if (processedFiles.has(entrypoint) || entrypoint.includes(".bun")) {
+      if (processedFiles.has(entrypoint) || entrypoint.includes(".bun") || entrypoint.includes("node_modules")) {
         continue
       }
 
@@ -118,7 +119,6 @@ class Bundler extends EventEmitter {
 
       // get parent directory
       const parent = entrypoint.split("/").slice(0, -1).join("/")
-      // console.log({parent});
 
       let resolvedDeps = (
         await Promise.all(
@@ -141,7 +141,7 @@ class Bundler extends EventEmitter {
               const resolved = await Bun.resolve(dep.path, parent)
               return resolved
             } catch (error) {
-              console.error(error)
+              console.error(`resolveDependencies ${error}`)
             }
           })
         )
@@ -178,7 +178,7 @@ class Bundler extends EventEmitter {
         from: css,
         to: outPath,
       })
-      
+
       await Bun.write(outPath, processed.css)
       cssMap.set(css, outPath.slice(`${this.config.buildDirectory}/`.length))
     }
@@ -252,11 +252,11 @@ class Bundler extends EventEmitter {
 
   private resolveEntryPoints = (
     entrypoints: string[],
-    appDirectory: string
+    root: string
   ) => {
     return entrypoints.map((entry) => {
       const s = entry.replace(/\//g, "")
-      return path.resolve(`${appDirectory}/${s}`)
+      return path.resolve(`${root}/${s}`)
     })
   }
 }

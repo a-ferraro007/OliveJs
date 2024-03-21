@@ -31,31 +31,31 @@ export interface Middleware {
 }
 
 export type BundlerConfig = {
-    outDir: string, 
-    minify: boolean, 
-    splitting: boolean, 
-    sourcemap: "none" | "inline" | "external" | undefined, 
-    format: string, 
+    outDir: string,
+    minify: boolean,
+    splitting: boolean,
+    sourcemap: "none" | "inline" | "external" | undefined,
+    format: string,
     plugins: string[]
 }
 
-export type WatcherConfig = { 
-  mode: string, 
+export type WatcherConfig = {
+  mode: string,
   buildDirectory: string,
-  appDirectory: string
+  root: string
 }
 
 export type OliveConfig = {
   port: number,
-  mode: Mode, 
-  buildDirectory: string, 
-  appDirectory: string,
-  entrypoints: string[], 
-  publicPath: string, 
-  outDir: string, 
-  minify: boolean, 
-  splitting: boolean, 
-  sourcemap: "none" | "inline" | "external" | undefined, 
-  format:  "esm" | undefined, 
+  mode: Mode,
+  buildDirectory: string,
+  root: string,
+  entrypoints: string[],
+  publicPath: string,
+  outDir: string,
+  minify: boolean,
+  splitting: boolean,
+  sourcemap: "none" | "inline" | "external" | undefined,
+  format:  "esm" | undefined,
   plugins: string[]
 }

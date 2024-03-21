@@ -16,7 +16,7 @@ export class Watcher {
   // `./${this.config.buildDirectory}/*`
   startWatcher = () => {
     this.resetbuildDirectory()
-    const watcher = chokidar.watch([`./${this.config.appDirectory}/**`], {
+    const watcher = chokidar.watch([`./${this.config.root}/**`], {
       ignored: [
         /(^|[\/\\])\../,
         "*/node_modules/**",
@@ -38,11 +38,12 @@ export class Watcher {
 
   private resetbuildDirectory = () => {
     const outPath = path.resolve(this.config.buildDirectory)
+    console.log({outPath})
     try {
       fs.rmSync(outPath, { recursive: true })
       fs.mkdirSync(outPath)
     } catch (e) {
-      console.log(e)
+      console.error(`resetbuildDirectory: ${e}`)
     }
   }
 

@@ -47,9 +47,9 @@ class Server {
     if (callback) callback()
     const b = new Bundler(this.config, this.postCSSConfig)
     const w = new Watcher({
-      mode: mode, 
-      buildDirectory: this.config.buildDirectory, 
-      appDirectory: this.config.appDirectory
+      mode: mode,
+      buildDirectory: this.config.buildDirectory,
+      root: this.config.root
     }, b)
 
     this.BundlerEmitter = b.emitter
@@ -57,7 +57,7 @@ class Server {
     w.startWatcher()
     return this.openServer(this.config.port ?? 3000, mode, __BASE_URL__, options)
   }
-  
+
   baseMiddleware = async (req: Request, res: WrappedResponse, next: any) => {
     const path = req.url.replace(__BASE_URL__, "")
     if (this.config.mode === Mode.Development) {
@@ -84,7 +84,7 @@ class Server {
 
   private openServer(
     port: string | number,
-    mode: Mode, 
+    mode: Mode,
     baseUrl: string,
     options?: any
   ): BunServer {
