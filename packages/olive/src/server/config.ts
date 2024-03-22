@@ -39,7 +39,7 @@ const readConfig = async () => {
 
   appConfig = {
     port: config?.port ?? 3000,
-    mode: process.env.MODE as Mode,
+    mode: process.env.MODE as Mode ?? Mode.Development,
     buildDirectory:
       process.env.MODE === Mode.Production
         ? "build"
