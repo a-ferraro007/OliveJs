@@ -8,5 +8,8 @@
   "dependencies": {
     "@types/prompts": "^2.4.9",
     "postcss": "^8.4.31"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.6.1"
   }
 }
