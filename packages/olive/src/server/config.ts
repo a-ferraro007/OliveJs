@@ -54,8 +54,8 @@ const readConfig = async () => {
 			process.env.MODE === Mode.Production ||
 			(config?.bundlerConfig?.minify ?? false),
 		splitting:
-			process.env.MODE === Mode.Production ||
-			(config?.bundlerConfig?.splitting ?? false),
+			config?.bundlerConfig?.splitting ??
+			(process.env.MODE === Mode.Production || false),
 		sourcemap:
 			process.env.MODE === Mode.Production
 				? "none"
