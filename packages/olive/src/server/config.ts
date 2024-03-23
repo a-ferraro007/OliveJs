@@ -50,12 +50,13 @@ const readConfig = async () => {
 			process.env.MODE === Mode.Production
 				? "build"
 				: config?.buildDir ?? "dist",
-		minify:
-			process.env.MODE === Mode.Production ||
-			(config?.bundlerConfig?.minify ?? false),
-		splitting:
-			config?.bundlerConfig?.splitting ??
-			(process.env.MODE === Mode.Production || false),
+		minify: false,
+		// process.env.MODE === Mode.Production ||
+		// (config?.bundlerConfig?.minify ?? false),
+		splitting: false,
+		// config?.bundlerConfig?.splitting ||
+		// process.env.MODE === Mode.Production ||
+		// false,
 		sourcemap:
 			process.env.MODE === Mode.Production
 				? "none"
