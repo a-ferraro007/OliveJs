@@ -1,24 +1,24 @@
 {
-  "name": "olivejs-sandbox",
-  "version": "0.0.11",
-  "main": "cli.ts",
-  "type": "module",
-  "description": "test framework",
-  "bin": {
-    "olive": "cli.ts"
-  },
-  "script": {
-    "start": "bun run cli.ts"
-  },
-  "files": ["src/", "build.ts", "types.ts", "cli.ts", "dev.ts", "package.json"],
-  "dependencies": {
-    "arg": "^5.0.2",
-    "chokidar": "^3.5.3",
-    "mrmime": "^1.0.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "bun-types": "^1.0.3"
-  }
+	"name": "olivejs-sandbox",
+	"version": "0.0.12",
+	"main": "cli.ts",
+	"type": "module",
+	"description": "test framework",
+	"bin": {
+		"olive": "cli.ts"
+	},
+	"script": {
+		"start": "bun run cli.ts"
+	},
+	"files": ["src/", "build.ts", "types.ts", "cli.ts", "dev.ts", "package.json"],
+	"dependencies": {
+		"arg": "^5.0.2",
+		"chokidar": "^3.5.3",
+		"mrmime": "^1.0.1",
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0"
+	},
+	"devDependencies": {
+		"bun-types": "^1.0.3"
+	}
 }
