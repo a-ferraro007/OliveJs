@@ -198,8 +198,8 @@ class Bundler extends EventEmitter {
 		const outDir = this.mode === Mode.Development ? `/${this.config.outDir}` : "";
 
 		let cssLinkTags = "";
-		for (const e of cssMap) {
-			cssLinkTags += `<link rel="stylesheet" type="text/css" href="${outDir}/${e}" />\n`;
+		for (const [_, value] of cssMap) {
+			cssLinkTags += `<link rel="stylesheet" type="text/css" href="${outDir}/${value}" />\n`;
 		}
 
 		return `<!DOCTYPE html>
