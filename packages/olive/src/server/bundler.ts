@@ -21,10 +21,7 @@ class Bundler extends EventEmitter {
 		this.mode = config.mode;
 		this.config = config;
 		this.postCSSConfig = postCSSConfig ?? { plugins: [] };
-		this.entrypoints = this.resolveEntryPoints(
-			config.entrypoints,
-			config.rootDir,
-		);
+		this.entrypoints = this.resolveEntryPoints(config.entrypoints, config.rootDir);
 		this.emitter = this;
 		this.isFirstBundle = true;
 	}
@@ -35,12 +32,9 @@ class Bundler extends EventEmitter {
 		else timeString = "🚀 rebuilt";
 
 		console.time(timeString);
-		if (!this.isFirstBundle)
-			console.log(`\n 🫒 rebuilding... (~ ${this.stats})`);
+		if (!this.isFirstBundle) console.log(`\n 🫒 rebuilding... (~ ${this.stats})`);
 
-		const { dependencies, cssImportMap } = await this.resolveDependencies(
-			this.entrypoints,
-		);
+		const { dependencies, cssImportMap } = await this.resolveDependencies(this.entrypoints);
 		const cssMap = await this.buildCSS(cssImportMap);
 		const c = postCSSPlugin(cssMap);
 
@@ -67,11 +61,7 @@ class Bundler extends EventEmitter {
 
 			const jsBuildHash = build?.outputs[0].hash;
 
-			const html = this.buildHTMLDocument(
-				cssMap,
-				jsBuildHash,
-				this.config.sourcemap === "external",
-			);
+			const html = this.buildHTMLDocument(cssMap, jsBuildHash, this.config.sourcemap === "external");
 			Bun.write(`${this.config.outDir}/index.html`, html);
 			if (this.mode === Mode.Development) this.emitter.emit("bundle", build);
 
@@ -190,9 +180,7 @@ class Bundler extends EventEmitter {
 			JSON.stringify(Array.from(cssMap.entries()), null, 2),
 		);
 		console.timeEnd("✅ compiled css");
-		const map = JSON.parse(
-			await Bun.file(path.join(this.config.buildDir, "cssmap.json")).text(),
-		);
+		const map = JSON.parse(await Bun.file(path.join(this.config.buildDir, "cssmap.json")).text());
 
 		return cssMap;
 	};
@@ -204,15 +192,10 @@ class Bundler extends EventEmitter {
 		}>,
 	) => Array.from(dep.values()).map((dep) => dep.entrypoint);
 
-	private buildHTMLDocument = (
-		cssMap: Map<string, string>,
-		jsHash: string | null,
-		sourcemap: boolean,
-	) => {
+	private buildHTMLDocument = (cssMap: Map<string, string>, jsHash: string | null, sourcemap: boolean) => {
 		// Work around for vercel deployment - vercel is serviing static build assets
 		// from the root directory instead of the build directory
-		const outDir =
-			this.mode === Mode.Development ? `/${this.config.outDir}` : "";
+		const outDir = this.mode === Mode.Development ? `/${this.config.outDir}` : "";
 
 		let cssLinkTags = "";
 		for (const e of cssMap) {
@@ -231,14 +214,10 @@ class Bundler extends EventEmitter {
 
                 ${cssLinkTags}
                 <script type="module" src="${outDir}/index-${jsHash}.js"></script>
-                ${
-									sourcemap
-										? `<script type="application/json" src="${outDir}/index.js.map"></script>`
-										: ""
-								}
+                ${sourcemap ? `<script type="application/json" src="${outDir}/index.js.map"></script>` : ""}
                 ${
 									this.mode === Mode.Development
-										? `<script type="module" src="/${this.config.outDir}/client.js"></script>`
+										? `<script type="module" src="/public/client.js"></script>`
 										: ""
 								}
             </head>
