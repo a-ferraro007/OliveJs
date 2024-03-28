@@ -1,10 +1,5 @@
 #!/usr/bin/env bun
-
-
-import arg from "arg"
-
-// @ts-ignore
-import { version } from "./package.json"
+import arg from "arg";
 
 const args = arg({
 	"--help": Boolean,
@@ -12,18 +7,18 @@ const args = arg({
 
 	"-h": "--help",
 	"-v": "--version",
-})
+});
 
-const command = args._[0]
+const command = args._[0];
 
-switch(command) {
-	case 'dev':
-		import('./dev')
-		break
-	case 'build':
-		import('./build')
-		break
+switch (command) {
+	case "dev":
+		import("./dev");
+		break;
+	case "build":
+		import("./build");
+		break;
 	default:
-		console.log(`Unknown command: ${command}`)
-		process.exit(1)
+		console.log(`Unknown command: ${command}`);
+		process.exit(1);
 }

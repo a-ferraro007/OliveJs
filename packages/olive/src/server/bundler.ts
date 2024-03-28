@@ -2,7 +2,8 @@ import path from "node:path";
 import { EventEmitter } from "node:events";
 import { Mode, type OliveConfig } from "../../types";
 import Postcss from "postcss";
-import postCSSPlugin from "../postCSSPlugin";
+import postCSSLoader from "../postCSSPlugin";
+import assetLoader from "../assetLoaderPlugin";
 
 const transpiler = new Bun.Transpiler({ loader: "tsx" });
 class Bundler extends EventEmitter {
@@ -27,16 +28,22 @@ class Bundler extends EventEmitter {
 	}
 
 	bundle = async () => {
+		console.log("BUNDLE_1");
 		let timeString: string;
 		if (this.isFirstBundle) timeString = "🚀 built";
 		else timeString = "🚀 rebuilt";
-
 		console.time(timeString);
 		if (!this.isFirstBundle) console.log(`\n 🫒 rebuilding... (~ ${this.stats})`);
 
 		const { dependencies, cssImportMap } = await this.resolveDependencies(this.entrypoints);
+		console.log({ dependencies });
+
+		console.log("BUNDLE_2");
 		const cssMap = await this.buildCSS(cssImportMap);
-		const c = postCSSPlugin(cssMap);
+		// const assetLoaderPlugin = assetLoader();
+		// const postCSSPlugin = postCSSLoader(cssMap);
+		// await import.meta.resolve("./preload");
+		console.log(this.buildClientEntrypoints(dependencies));
 
 		try {
 			const build = await Bun.build({
@@ -46,23 +53,29 @@ class Bundler extends EventEmitter {
 				minify: this.config.minify,
 				naming: "[dir]/[name]-[hash].[ext]",
 				splitting: this.config.splitting,
-				format: this.config.format,
+				format: "esm",
 				sourcemap: this.config.sourcemap,
-				plugins: [c],
+				publicPath: "/dist/",
+				plugins: [postCSSLoader(cssMap)],
 			});
 
 			if (!build.success) {
 				console.error("Build failed");
+				console.log(build.outputs);
 				for (const message of build.logs) {
 					console.error(message);
 				}
 				return;
 			}
 
+			//////////////////////////////////////////////////
+			/// Move this into a plugin loader to handle   ///
+			/// creating the HTML file while bundling      ///
+			//////////////////////////////////////////////////
 			const jsBuildHash = build?.outputs[0].hash;
-
 			const html = this.buildHTMLDocument(cssMap, jsBuildHash, this.config.sourcemap === "external");
 			Bun.write(`${this.config.outDir}/index.html`, html);
+
 			if (this.mode === Mode.Development) this.emitter.emit("bundle", build);
 
 			if (this.isFirstBundle) this.isFirstBundle = false;
@@ -80,6 +93,7 @@ class Bundler extends EventEmitter {
 		dependencies: Set<{ entrypoint: string; exports: string[] }> = new Set(),
 		processedFiles: Set<string> = new Set(),
 		cssImportMap: Record<string, string[]> = {},
+		assetImportMap: Record<string, string[]> = {},
 		startingKey: string | undefined = undefined,
 		depth = 0,
 	): Promise<{
@@ -99,33 +113,55 @@ class Bundler extends EventEmitter {
 
 			// get file & read contents
 			const file = await Bun.file(entrypoint);
+
+			if (entrypoint.match(/\.(jpeg|jpg|png|gif|svg)$/i)) {
+				// console.log("CONTENTS");
+				// // contents = await file.arrayBuffer();
+				// // depScan = await transpiler.scan(contents);
+				// dependencies.add({ entrypoint, exports: [] });
+				// // console.log("CONTENTS_2");
+				continue;
+			}
 			const contents = await file.text();
+			const depScan = await transpiler.scan(contents);
+
+			dependencies.add({ entrypoint, exports: depScan.exports });
+
+			// console.log(depScan.exports);
 
 			// get import / export list
-			const depScan = await transpiler.scan(contents);
-			dependencies.add({ entrypoint, exports: depScan.exports });
+			// const depScan =
+			// console.log(depScan);
 
 			// keep track of processed files
 			processedFiles.add(entrypoint);
 
 			// get parent directory
 			const parent = entrypoint.split("/").slice(0, -1).join("/");
-			// console.log({parent});
 
 			const resolvedDeps = (
 				await Promise.all(
 					// map through file imports
 					depScan.imports.map(async (dep) => {
 						try {
+							// Creating a css import path might be redundant, moving
+							//this into the postcss plugin might work.
 							// if a css file is encountered, add it to the map
-							if (dep.path.endsWith(".css")) {
+							if (dep.path.match(/\.(css|scss)$/i)) {
 								if (!cssImportMap[entryKey]) cssImportMap[entryKey] = [];
-
-								// console.log({parent, entryKey});
 
 								// resolve file from parent
 								const resolved = await Bun.resolve(dep.path, parent);
 								cssImportMap[entryKey].push(resolved);
+								return;
+							}
+
+							if (dep.path.match(/\.(jpeg|jpg|png|gif|svg)$/i)) {
+								if (!assetImportMap[entryKey]) assetImportMap[entryKey] = [];
+
+								// resolve file from parent
+								const resolved = await Bun.resolve(dep.path, parent);
+								assetImportMap[entryKey].push(resolved);
 								return;
 							}
 
@@ -147,14 +183,19 @@ class Bundler extends EventEmitter {
 					dependencies,
 					processedFiles,
 					cssImportMap,
+					assetImportMap,
 					entryKey,
 					depth + 1,
 				);
 			}
 		}
-		return { dependencies, cssImportMap };
+		return { dependencies, cssImportMap, resolvedDeps: assetImportMap };
 	};
 
+	//////////////////////////////////////////////////
+	/// Possible move this into the postCSS plugin ///
+	///                                            ///
+	//////////////////////////////////////////////////
 	buildCSS = async (cssImportMap: Record<string, string[]>) => {
 		console.time("✅ compiled css");
 		const cssImports = Array.from(Object.values(cssImportMap)).flat();
@@ -170,6 +211,7 @@ class Bundler extends EventEmitter {
 				from: css,
 				to: outPath,
 			});
+			console.log(outPath);
 
 			await Bun.write(outPath, processed.css);
 			cssMap.set(css, outPath.slice(`${this.config.buildDir}/`.length));
@@ -180,7 +222,7 @@ class Bundler extends EventEmitter {
 			JSON.stringify(Array.from(cssMap.entries()), null, 2),
 		);
 		console.timeEnd("✅ compiled css");
-		const map = JSON.parse(await Bun.file(path.join(this.config.buildDir, "cssmap.json")).text());
+		// const map = JSON.parse(await Bun.file(path.join(this.config.buildDir, "cssmap.json")).text());
 
 		return cssMap;
 	};

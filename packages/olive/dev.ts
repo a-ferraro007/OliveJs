@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
 import { server } from "./src/server/server";
+import { version } from "./package.json";
 import { Mode } from "./types";
 
-console.log("\n🫒 olive dev\n");
+console.log(`\n🫒 olive dev v${version}\n`);
 const app = await server();
 const { config } = app;
 

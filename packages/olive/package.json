@@ -10,7 +10,7 @@
 	"script": {
 		"start": "bun run cli.ts"
 	},
-	"files": ["src/", "build.ts", "types.ts", "cli.ts", "dev.ts", "package.json"],
+	"files": ["src/", "build.ts", "types.ts", "cli.ts", "dev.ts", "package.json", ".bunfig.toml"],
 	"dependencies": {
 		"@elysiajs/html": "^1.0.2",
 		"@elysiajs/static": "^1.0.2",
