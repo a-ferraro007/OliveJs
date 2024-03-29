@@ -72,9 +72,7 @@ class Server {
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private openServerV2(port: string | number, mode: Mode, options?: any): any {
-		console.log("SERVER_1");
-		this.writeClientFolder();
-		console.log("SERVER_2");
+		this.writeClientFolder(); // i do not like this
 		new Elysia()
 			.use(staticPlugin())
 			.derive(({ request, error, set }) => {

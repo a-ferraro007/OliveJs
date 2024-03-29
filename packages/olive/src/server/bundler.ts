@@ -42,8 +42,8 @@ class Bundler extends EventEmitter {
 			const esBuild = await es.build({
 				entryPoints: this.buildClientEntrypoints(dependencies),
 				bundle: true,
-				sourceRoot: this.config.rootDir,
 				outdir: `./${this.config.outDir}`,
+				sourceRoot: this.config.rootDir,
 				loader: {
 					".jpg": "file",
 					".jpeg": "file",
@@ -264,7 +264,7 @@ class Bundler extends EventEmitter {
                 <title>Olivejs - Sandbox</title>
 
                 ${cssLinkTags}
-                <script type="module" src="/dist/src/index.js"></script>
+                <script type="module" src="${outDir}/${this.config.rootDir}/index.js"></script>
                 ${sourcemap ? `<script type="application/json" src="${outDir}/index.js.map"></script>` : ""}
                 ${
 									this.mode === Mode.Development
