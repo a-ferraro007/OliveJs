@@ -1,13 +1,14 @@
+import { Elysia } from "elysia";
+import { staticPlugin } from "@elysiajs/static";
 import fs from "node:fs";
-import path from "path";
 import { Watcher } from "./watcher";
 import { Bundler } from "./bundler";
-import { Chain } from "./chain";
 import { readConfig, readPostCSSConfig } from "./config";
-import { EventEmitter } from "node:events";
-import { Server as BunServer } from "bun";
-import { Middleware, Mode, OliveConfig } from "../../types";
 import { WrappedResponse } from "./wrapped-response";
+import { Chain } from "./chain";
+import type { Server as BunServer } from "bun";
+import type { EventEmitter } from "node:events";
+import { type Middleware, Mode, type OliveConfig } from "../../types";
 
 export async function server() {
 	return Server.instance;
@@ -20,6 +21,7 @@ class Server {
 	private readonly middlewares: Middleware[] = [];
 	BundlerEmitter?: EventEmitter;
 	config!: OliveConfig;
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	postCSSConfig: any;
 
 	constructor() {
@@ -38,11 +40,13 @@ class Server {
 				Server.server.postCSSConfig = await readPostCSSConfig();
 				return Server.server;
 			} catch (error) {
+				console.error(error);
 				throw error;
 			}
 		})();
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	listen(mode: Mode, callback: () => void, options?: any) {
 		if (callback) callback();
 		const b = new Bundler(this.config, this.postCSSConfig);
@@ -58,14 +62,95 @@ class Server {
 		this.BundlerEmitter = b.emitter;
 		b.bundle();
 		w.startWatcher();
-		return this.openServer(
-			this.config.port ?? 3000,
-			mode,
-			__BASE_URL__,
-			options,
-		);
+		return this.openServerV2(this.config.port ?? 3000, mode, options);
 	}
 
+	private async writeClientFolder() {
+		const path = await import.meta.resolve("../client/client.js");
+		Bun.write("public/client.js", Bun.file(path));
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	private openServerV2(port: string | number, mode: Mode, options?: any): any {
+		console.log("SERVER_1");
+		this.writeClientFolder();
+		console.log("SERVER_2");
+		new Elysia()
+			.use(staticPlugin())
+			.derive(({ request, error, set }) => {
+				const path = request.url.replace(__BASE_URL__, "");
+				if (path === "/") {
+					set.headers["content-type"] = "text/html; charset=utf8";
+					return {
+						res: Bun.file(`${this.config.buildDir}/index.html`),
+					};
+				}
+				if (!fs.existsSync(path.slice(1, path.length))) {
+					return { res: error(404, "Route not found") };
+				}
+				return { res: Bun.file(path.slice(1, path.length)) };
+			})
+			.get("*", ({ res }) => res)
+			.ws("/__live_reload_ws__", {
+				open: async (ws) => {
+					this.BundlerEmitter?.addListener("bundle", () => {
+						ws.send("reload");
+					});
+				},
+				message: () => {},
+			})
+			.onError(({ code }) => {
+				if (code === "NOT_FOUND") console.error("Route not found :(");
+			})
+			.listen({
+				port,
+				development: mode === Mode.Development,
+			});
+	}
+
+	/**
+	 * @deprecated Use Elysia based openServerV2 instead
+	 */
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	private openServer(port: string | number, mode: Mode, baseUrl: string, options?: any): BunServer {
+		const _this = this;
+		_this.middlewares.push({
+			path: "/",
+			middlewareFunc: this.baseMiddleware,
+		});
+
+		return Bun.serve({
+			port,
+			development: mode === Mode.Development,
+			websocket: {
+				open: async (ws) => {
+					this.BundlerEmitter?.addListener("bundle", () => {
+						ws.send("reload");
+					});
+				},
+				message: () => {},
+			},
+			async fetch(req) {
+				const path = req.url.replace(__BASE_URL__, "");
+				if (path === "/__live_reload_ws__" && _this.config.mode === Mode.Development) {
+					const upgraded = this.upgrade(req);
+					if (!upgraded) {
+						return new Response("Failed to upgrade websocket connection for live reload", { status: 400 });
+					}
+				}
+
+				const res = new WrappedResponse();
+				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+				const chain = new (Chain as any)(req, res, _this.middlewares);
+				await chain.next();
+				if (res.isReady()) return res.getResponse();
+				if (!chain.isFinished()) throw new Error("Please call next() at the end of your middleware");
+				return res.getResponse();
+			},
+		});
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	baseMiddleware = async (req: Request, res: WrappedResponse, next: any) => {
 		const path = req.url.replace(__BASE_URL__, "");
 		if (this.config.mode === Mode.Development) {
@@ -89,53 +174,4 @@ class Server {
 		res.send(file);
 		next();
 	};
-
-	private openServer(
-		port: string | number,
-		mode: Mode,
-		baseUrl: string,
-		options?: any,
-	): BunServer {
-		const _this = this;
-		this.middlewares.push({
-			path: "/",
-			middlewareFunc: this.baseMiddleware,
-		});
-
-		return Bun.serve({
-			port,
-			development: mode === Mode.Development,
-			websocket: {
-				open: async (ws) => {
-					this.BundlerEmitter?.addListener("bundle", () => {
-						ws.send("reload");
-					});
-				},
-				message: () => {},
-			},
-			async fetch(req) {
-				const path = req.url.replace(__BASE_URL__, "");
-				if (
-					path === "/__live_reload_ws__" &&
-					_this.config.mode === Mode.Development
-				) {
-					const upgraded = this.upgrade(req);
-					if (!upgraded) {
-						return new Response(
-							"Failed to upgrade websocket connection for live reload",
-							{ status: 400 },
-						);
-					}
-				}
-
-				const res = new WrappedResponse();
-				const chain = new (Chain as any)(req, res, _this.middlewares);
-				await chain.next();
-				if (res.isReady()) return res.getResponse();
-				if (!chain.isFinished())
-					throw new Error("Please call next() at the end of your middleware");
-				return res.getResponse();
-			},
-		});
-	}
 }
