@@ -234,8 +234,6 @@ class Bundler extends EventEmitter {
 			JSON.stringify(Array.from(cssMap.entries()), null, 2),
 		);
 		console.timeEnd("✅ compiled css");
-		// const map = JSON.parse(await Bun.file(path.join(this.config.buildDir, "cssmap.json")).text());
-
 		return cssMap;
 	};
 
@@ -255,7 +253,6 @@ class Bundler extends EventEmitter {
 		for (const [_, value] of cssMap) {
 			cssLinkTags += `<link rel="stylesheet" type="text/css" href="${outDir}/${value}" />\n`;
 		}
-		// -${jsHash}
 		return `<!DOCTYPE html>
         <html lang="en">
             <head>
