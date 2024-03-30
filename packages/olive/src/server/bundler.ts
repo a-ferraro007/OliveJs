@@ -4,6 +4,7 @@ import { EventEmitter } from "node:events";
 import { Mode, type OliveConfig } from "../../types";
 import Postcss from "postcss";
 import postCSSLoader from "../postCSSPlugin";
+import buildIndexHTML from "../buildIndexHtmlPlugin";
 
 const transpiler = new Bun.Transpiler({ trimUnusedImports: true });
 class Bundler extends EventEmitter {
@@ -36,7 +37,6 @@ class Bundler extends EventEmitter {
 
 		const { dependencies, cssImportMap } = await this.resolveDependencies(this.entrypoints);
 		const cssMap = await this.buildCSS(cssImportMap);
-		// const postCSSPlugin = postCSSLoader(cssMap);
 
 		try {
 			const esBuild = await es.build({
@@ -55,12 +55,12 @@ class Bundler extends EventEmitter {
 				assetNames: "assets/[name]-[hash]",
 				publicPath: `/${this.config.outDir}`,
 				write: true, // figure out how to avoid writing to disk for dev mode
-				plugins: [postCSSLoader(cssMap)],
+				plugins: [postCSSLoader(cssMap), buildIndexHTML()],
 			});
 
-			/**
-			 * Bun build is throwing bus error when importing and using images in
-			 * .tsx files. Falling back to esbuild until I figure out how to resolve this.
+			/*
+			  Bun build is throwing bus error when importing and using images in
+			  .tsx files. Falling back to esbuild until I figure out how to resolve this.
 
 			const build = await Bun.build({
 				entrypoints: this.buildClientEntrypoints(dependencies),
@@ -98,6 +98,13 @@ class Bundler extends EventEmitter {
 			 **/
 			const html = this.buildHTMLDocument(cssMap, "", this.config.sourcemap === "external");
 			Bun.write(`${this.config.outDir}/index.html`, html);
+
+			if (this.config.mode === Mode.Development) {
+				Bun.write(
+					`${this.config.outDir}/client.js`,
+					Bun.file(await import.meta.resolve("../client/client.js")),
+				);
+			}
 
 			if (this.mode === Mode.Development) this.emitter.emit("bundle", esBuild);
 
@@ -223,7 +230,6 @@ class Bundler extends EventEmitter {
 				from: css,
 				to: outPath,
 			});
-			console.log(outPath);
 
 			await Bun.write(outPath, processed.css);
 			cssMap.set(css, outPath.slice(`${this.config.buildDir}/`.length));
