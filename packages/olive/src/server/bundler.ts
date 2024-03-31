@@ -7,7 +7,7 @@ import postCSSLoader from "../postCSSPlugin";
 import buildIndexHTML from "../buildIndexHtmlPlugin";
 
 const transpiler = new Bun.Transpiler({ trimUnusedImports: true });
-class Bundler extends EventEmitter {
+class Bundler {
 	private config: OliveConfig;
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private postCSSConfig: any;
@@ -19,12 +19,11 @@ class Bundler extends EventEmitter {
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	constructor(config: OliveConfig, postCSSConfig: any) {
-		super();
 		this.mode = config.mode;
 		this.config = config;
 		this.postCSSConfig = postCSSConfig ?? { plugins: [] };
 		this.entrypoints = this.resolveEntryPoints(config.entrypoints, config.rootDir);
-		this.emitter = this;
+		this.emitter = new EventEmitter();
 		this.isFirstBundle = true;
 	}
 
@@ -113,7 +112,6 @@ class Bundler extends EventEmitter {
 			return esBuild;
 		} catch (error) {
 			console.error(error);
-			throw error;
 		}
 	};
 
