@@ -25,31 +25,30 @@ const findConfig = (config: string) => {
 	return { exists: !!filePath, filePath: filePath };
 };
 
-const readConfig = async () => {
+const readConfig = async (): Promise<OliveConfig> => {
 	const { exists, filePath } = findConfig(__CONFIG_FILE_NAME__);
 	if (!exists) throw new Error("Error: olive config file not found");
 
 	const stat = fs.statSync(filePath);
 	const file = await import(`${pathToFileURL(filePath).href}?=${stat.mtimeMs}`);
-	const config = file?.default;
+	const config: OliveConfig = file?.default;
 	if (!isValidMode((process.env.MODE as Mode) ?? Mode.Development)) {
-		console.error(`Error: invalid mode, defaulting to ${Mode.Development}`);
+		console.error(`Error: invalid mode, defaulting to ${Mode.Development} mode`);
 	}
 
-	const appConfig: OliveConfig = {
+	return {
 		port: config?.port ?? 3000,
 		mode: (process.env.MODE as Mode) ?? Mode.Development,
-		buildDir:
-			process.env.MODE === Mode.Production
-				? "build"
-				: config?.buildDir ?? "dist",
+		enableSPA: config?.enableSPA ?? true,
+		buildDir: process.env.MODE === Mode.Production ? "build" : config?.buildDir ?? "dist",
 		rootDir: config?.rootDir ?? "app",
-		entrypoints: config?.entrypoints ?? "index.tsx",
+		// if rootDir is missing from entrypoint, add it by default?
+		entrypoints: config?.entrypoints ?? ["index.tsx"],
 		publicPath: config?.publicPath ?? "/dist/",
-		outDir:
-			process.env.MODE === Mode.Production
-				? "build"
-				: config?.buildDir ?? "dist",
+		outDir: ((mode: Mode | undefined) => {
+			if (mode === Mode.Production) return "build";
+			return config?.buildDir ?? "dist";
+		})(process.env.MODE as Mode),
 		minify: false,
 		// process.env.MODE === Mode.Production ||
 		// (config?.bundlerConfig?.minify ?? false),
@@ -57,15 +56,15 @@ const readConfig = async () => {
 		// config?.bundlerConfig?.splitting ||
 		// process.env.MODE === Mode.Production ||
 		// false,
-		sourcemap:
-			process.env.MODE === Mode.Production
-				? "none"
-				: config?.bundlerConfig?.sourcemap ?? "inline",
+		sourcemap: ((mode: Mode | undefined) => {
+			if (mode === Mode.Production) return "none";
+			return config?.bundlerConfig?.sourcemap ?? "inline";
+		})(process.env.MODE as Mode),
 		format: config?.bundlerConfig?.format ?? "esm",
 		plugins: config?.plugins ?? [],
+		// Separate template config
+		inlineScript: config?.inlineScript ?? true,
 	};
-
-	return appConfig;
 };
 
 const readPostCSSConfig = async () => {
@@ -75,12 +74,10 @@ const readPostCSSConfig = async () => {
 
 	console.time("✅ PostCSS config loaded\n");
 	const postCSSConfigFile = require(filePath);
-	postCSSConfigFile.plugins = Object.entries(postCSSConfigFile.plugins).map(
-		([name, options]) => {
-			const plugin = require(path.resolve(`node_modules/${name}`));
-			return plugin(options);
-		},
-	);
+	postCSSConfigFile.plugins = Object.entries(postCSSConfigFile.plugins).map(([name, options]) => {
+		const plugin = require(path.resolve(`node_modules/${name}`));
+		return plugin(options);
+	});
 	console.timeEnd("✅ PostCSS config loaded\n");
 	return postCSSConfigFile;
 };

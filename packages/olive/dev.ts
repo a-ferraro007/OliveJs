@@ -7,6 +7,6 @@ console.log(`\n🫒 olive dev v${version}\n`);
 const app = await server();
 const { config } = app;
 
-app.listen(config.mode ?? Mode.develop, () => {
+app.listen(config.mode ?? Mode.Development, () => {
 	console.log(`[  info  ] Server is listening on port ${config.port}`);
 });
