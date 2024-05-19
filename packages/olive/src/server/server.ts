@@ -65,14 +65,8 @@ class Server {
 		return this.openServerV2(this.config.port ?? 3000, mode, options);
 	}
 
-	private async writeClientFolder() {
-		const path = await import.meta.resolve("../client/client.js");
-		Bun.write("public/client.js", Bun.file(path));
-	}
-
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private openServerV2(port: string | number, mode: Mode, options?: any): any {
-		this.writeClientFolder(); // i do not like this
 		new Elysia()
 			.use(staticPlugin())
 			.derive(({ request, error, set }) => {
