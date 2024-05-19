@@ -2,11 +2,9 @@ import * as es from "esbuild";
 import path from "node:path";
 import { EventEmitter } from "node:events";
 import { Mode, type OliveConfig } from "../../types";
-import Postcss from "postcss";
 import postCSSLoader from "../postCSSPlugin";
 import indexHTMLPlugin from "../indexHTMLPlugin";
 import globalReplacePlugin from "../globalReplacePlugin";
-import type { Plugin, OnLoadResult } from "esbuild";
 
 const transpiler = new Bun.Transpiler({ trimUnusedImports: true });
 class Bundler {
@@ -44,9 +42,13 @@ class Bundler {
 				outdir: `${this.config.outDir}`,
 				sourceRoot: this.config.rootDir,
 				metafile: true,
+				/**
+				 *
+				 * publicPath property needs to match the outDir so imported images
+				 * have the right file path after bundling
+				 */
 				publicPath: this.config.outDir,
 				assetNames: "assets/[name]-[hash]",
-				// publicPath: this.config.publicPath,
 				/**
 				 * TODO: avoid writing to disk in dev mode
 				 */
@@ -61,15 +63,15 @@ class Bundler {
 				},
 				external: [`/${this.config.publicPath}/*`],
 				plugins: [
-					globalReplacePlugin(this.config.publicPath),
+					globalReplacePlugin(`/${this.config.publicPath}`),
 					postCSSLoader(this.postCSSConfig, this.config.buildDir),
 					indexHTMLPlugin(this.config),
 				],
 			});
 
-			/*
-			  Bun build is throwing bus error when importing and using images in
-			  .tsx files. Falling back to esbuild until I figure out how to resolve this.
+			/**
+			 * 	 Bun build is throwing bus error when importing and using images in
+			 * .tsx files. Falling back to esbuild until I figure out how to resolve this.
 			const build = await Bun.build({
 				entrypoints: this.buildClientEntrypoints(dependencies),
 				root: this.config.rootDir,

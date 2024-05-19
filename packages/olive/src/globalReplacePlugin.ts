@@ -16,10 +16,10 @@ export default function globalReplacePlugin(str: string) {
 				if (extension) {
 					if (extension.match(/css?$/)) {
 						loader = "css";
-						contents = contents.replace(/%PUBLIC%/g, "/public");
+						contents = contents.replace(/%PUBLIC%/g, str);
 					} else if (extension.match(/jsx?$/) || extension.match(/tsx?$/)) {
 						loader = "jsx";
-						contents = contents.replace(/%PUBLIC%/g, "/public");
+						contents = contents.replace(/%PUBLIC%/g, str);
 					}
 				}
 				console.log(`Using loader: ${loader} for path: ${args.path}`);
