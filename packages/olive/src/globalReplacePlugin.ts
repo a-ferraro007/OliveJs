@@ -5,7 +5,7 @@ export default function globalReplacePlugin(str: string) {
 		name: "globalReplace",
 		setup(build: PluginBuild) {
 			build.onLoad({ filter: /.*$/ }, async (args: OnLoadArgs): Promise<OnLoadResult | undefined> => {
-				if (args.path.includes("node_modules") || args.path.includes("public")) {
+				if (args.path.includes("node_modules")) {
 					// Skip node modules but do not end processing
 					return;
 				}
