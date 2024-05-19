@@ -2,9 +2,9 @@ import * as es from "esbuild";
 import path from "node:path";
 import { EventEmitter } from "node:events";
 import { Mode, type OliveConfig } from "../../types";
-import postCSSLoader from "../postCSSPlugin";
-import indexHTMLPlugin from "../indexHTMLPlugin";
-import globalReplacePlugin from "../globalReplacePlugin";
+import postCSSLoader from "../plugins/postCSSPlugin";
+import indexHTMLPlugin from "../plugins/indexHTMLPlugin";
+import globalReplacePlugin from "../plugins/globalReplacePlugin";
 
 const transpiler = new Bun.Transpiler({ trimUnusedImports: true });
 class Bundler {

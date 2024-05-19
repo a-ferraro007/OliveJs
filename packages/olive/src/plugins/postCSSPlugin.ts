@@ -3,6 +3,7 @@ import type { Plugin, OnLoadResult } from "esbuild";
 import Postcss from "postcss";
 
 // TODO: Cache - https://esbuild.github.io/plugins/#caching-your-plugin
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export default function postCSSLoader(config: any, buildDir: any) {
 	const postCSSLoader: Plugin = {
 		name: "postcss-plugin",

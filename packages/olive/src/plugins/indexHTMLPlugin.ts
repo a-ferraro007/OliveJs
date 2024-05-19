@@ -1,8 +1,8 @@
 import path from "node:path";
 import { JSDOM } from "jsdom";
 import type esbuild from "esbuild";
-import type { OliveConfig } from "../types";
-import type { OnLoadArgs, Plugin } from "esbuild";
+import type { OliveConfig } from "../../types";
+import type { Plugin } from "esbuild";
 type OutputFilesCollection = (esbuild.Metafile["outputs"][string] & { path: string })[];
 
 const defaultHtmlTemplate = `
