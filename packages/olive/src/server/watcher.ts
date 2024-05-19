@@ -1,8 +1,8 @@
-import chokidar from "chokidar";
-import { Bundler } from "./bundler";
+import path from "node:path";
 import fs from "node:fs";
-import path from "path";
-import { WatcherConfig } from "../../types";
+import chokidar from "chokidar";
+import type { Bundler } from "./bundler";
+import type { WatcherConfig } from "../../types";
 
 export class Watcher {
 	private config: WatcherConfig;
@@ -42,27 +42,27 @@ export class Watcher {
 			fs.rmSync(outPath, { recursive: true });
 			fs.mkdirSync(outPath);
 		} catch (e) {
-			console.log(e);
+			console.error(e);
 		}
 	};
 
+	/**
+	 * TODO: Remove
+	 */
 	private removeStaleJSBuilds = () => {
 		const regex = /^index-[A-Za-z0-9]+\.js|index-[A-Za-z0-9]+\.js.map$/;
 		const files = fs.readdirSync(this.config.buildDir);
 		// biome-ignore lint/complexity/noForEach: <explanation>
-		files.forEach(
-			(name) =>
-				regex.test(name) && fs.unlinkSync(`./${this.config.buildDir}/${name}`),
-		);
+		files.forEach((name) => regex.test(name) && fs.unlinkSync(`./${this.config.buildDir}/${name}`));
 	};
 
+	/**
+	 * TODO: Remove
+	 */
 	private removeStaleCSSBuilds = () => {
 		const regex = /^styles-[A-Za-z0-9]+\.css$/;
 		const files = fs.readdirSync(this.config.buildDir);
 		// biome-ignore lint/complexity/noForEach: <explanation>
-		files.forEach(
-			(name) =>
-				regex.test(name) && fs.unlinkSync(`./${this.config.buildDir}/${name}`),
-		);
+		files.forEach((name) => regex.test(name) && fs.unlinkSync(`./${this.config.buildDir}/${name}`));
 	};
 }

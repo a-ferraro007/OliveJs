@@ -44,11 +44,11 @@ const readConfig = async (): Promise<OliveConfig> => {
 		rootDir: config?.rootDir ?? "app",
 		// if rootDir is missing from entrypoint, add it by default?
 		entrypoints: config?.entrypoints ?? ["index.tsx"],
-		publicPath: config?.publicPath ?? "/dist/",
-		outDir: ((mode: Mode | undefined) => {
+		publicPath: config?.publicPath?.replaceAll("/", "") ?? "public",
+		outDir: ((mode: Mode | undefined, config: OliveConfig) => {
 			if (mode === Mode.Production) return "build";
 			return config?.buildDir ?? "dist";
-		})(process.env.MODE as Mode),
+		})(process.env.MODE as Mode, config),
 		minify: false,
 		// process.env.MODE === Mode.Production ||
 		// (config?.bundlerConfig?.minify ?? false),

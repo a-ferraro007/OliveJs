@@ -18,6 +18,7 @@ export default function postCSSLoader(config: any, buildDir: any) {
 			});
 			build.onLoad({ filter: /.css/, namespace: "css" }, async (args): Promise<OnLoadResult> => {
 				const postcss = Postcss(config.plugins);
+				console.log("~~~~~~POSTCSSS~~~~~~");
 
 				const cssFileString = await Bun.file(args.path).text();
 

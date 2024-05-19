@@ -1,8 +1,8 @@
 import path from "node:path";
+import { JSDOM } from "jsdom";
 import type esbuild from "esbuild";
 import type { OliveConfig } from "../types";
-import { JSDOM } from "jsdom";
-import type { Plugin, OnLoadResult, OnResolveResult, OnResolveArgs } from "esbuild";
+import type { OnLoadArgs, Plugin } from "esbuild";
 type OutputFilesCollection = (esbuild.Metafile["outputs"][string] & { path: string })[];
 
 const defaultHtmlTemplate = `
@@ -18,21 +18,27 @@ const defaultHtmlTemplate = `
 </html>
 `;
 
-// func joinWithPublicPath(publicPath string, relPath string) string {
-// 	if strings.HasPrefix(relPath, "./") {
-// 		relPath = relPath[2:]
+const joinWithPublicPath = (publicPath: string, relPath: string) => {
+	let rel = relPath;
+	const pub = publicPath === "" ? "." : publicPath;
+	if (rel.startsWith("./")) {
+		rel = rel.split("./")[1];
+		while (true) {
+			if (rel.startsWith("/")) {
+				rel = rel.slice(1, rel.length - 1);
+			} else if (rel.startsWith("./")) {
+				rel = rel.slice(2, rel.length - 1);
+			} else {
+				break;
+			}
+		}
+	}
 
-// 		// Strip any amount of further no-op slashes (i.e. ".///././/x/y" => "x/y")
-// 		for {
-// 			if strings.HasPrefix(relPath, "/") {
-// 				relPath = relPath[1:]
-// 			} else if strings.HasPrefix(relPath, "./") {
-// 				relPath = relPath[2:]
-// 			} else {
-// 				break
-// 			}
-// 		}
-// 	}
+	const slash = pub.endsWith("/") ? "" : "/";
+	console.log({ pub, rel }, pub.endsWith("/"), slash, `${pub}${slash}${rel}`);
+
+	return `${pub}${slash}${rel}`;
+};
 
 // 	// Use a relative path if there is no public path
 // 	if publicPath == "" {
@@ -55,32 +61,42 @@ const injectFiles = async (
 	config: OliveConfig,
 ) => {
 	const document = dom.window.document;
+
 	for (const asset of assets) {
+		const filepath = asset.path;
 		const ext = path.extname(asset.path);
+		console.log(filepath);
+
+		let targetPath = filepath;
+		// if (publicPath) {
+		// 	targetPath = joinWithPublicPath(publicPath, path.relative(outDir, filepath));
+		// }
+		// console.log(targetPath, { publicPath });
+
 		switch (ext) {
 			case ".js": {
 				const scriptTag = document.createElement("script");
-				if (!config.inlineScript) {
+				if (config.inlineScript) {
 					scriptTag.textContent = await Bun.file(asset.path).text();
 					document.body.append(scriptTag);
 					break;
 				}
 
-				scriptTag.setAttribute("src", asset.path);
+				scriptTag.setAttribute("src", targetPath);
 				document.body.append(scriptTag);
 				break;
 			}
 			case ".css": {
-				if (!config.inlineScript) {
+				if (config.inlineScript) {
 					const styleSheet = document.createElement("style");
-					styleSheet.textContent = await Bun.file(asset.path).text();
+					styleSheet.textContent = await Bun.file(targetPath).text();
 					document.head.append(styleSheet);
 					break;
 				}
 
 				const link = document.createElement("link");
 				link.setAttribute("rel", "stylesheet");
-				link.setAttribute("href", asset.path);
+				link.setAttribute("href", targetPath);
 				document.head.append(link);
 
 				break;
@@ -97,12 +113,13 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 		name: "html-plugin",
 		setup(build) {
 			build.onStart(() => {
-				console.log(
-					"HTML Plugin Started",
-					build.initialOptions.metafile,
-					build.initialOptions.outdir,
-					config.outDir,
-				);
+				console.log({
+					"b meta": build.initialOptions.metafile,
+					"b out": build.initialOptions.outdir,
+					"b public": build.initialOptions.publicPath,
+					"config out": config.outDir,
+					"c publicPath": config.publicPath,
+				});
 				if (!build.initialOptions.metafile) {
 					throw new Error("metafile is not enabled");
 				}
@@ -110,6 +127,7 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 					throw new Error("outdir must be set");
 				}
 			});
+
 			build.onEnd(async (result) => {
 				const startTime = Date.now();
 				console.log();
@@ -129,7 +147,7 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 				for (const entrypoint of entrypoints) {
 					const outputFilesMap = new Map();
 					outputFilesMap.set(entrypoint.path, entrypoint);
-					console.log(entrypoint.cssBundle);
+					// console.log(entrypoint.cssBundle);
 					if (entrypoint.cssBundle) {
 						outputFilesMap.set(entrypoint.cssBundle, { path: entrypoint.cssBundle });
 					}
@@ -141,6 +159,13 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 				const outDir = build.initialOptions.outdir!;
 				// biome-ignore lint/style/noNonNullAssertion: Asserted in build.onStart()
 				const publicPath = build.initialOptions.publicPath!;
+
+				let faviconPath = "/favicon.ico";
+				let manifestPath = "/manifest.json";
+				if (publicPath) {
+					faviconPath = joinWithPublicPath(publicPath, "favicon.ico");
+					manifestPath = joinWithPublicPath(publicPath, "manifest.json");
+				}
 
 				const dom = new JSDOM(defaultHtmlTemplate);
 				await injectFiles(dom, outputFilesCollection, outDir, publicPath, config);
