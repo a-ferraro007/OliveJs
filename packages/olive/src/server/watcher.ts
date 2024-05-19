@@ -8,12 +8,12 @@ export class Watcher {
 	private config: WatcherConfig;
 	private bundler: Bundler;
 
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	constructor(config: any, bundler: any) {
 		this.config = config;
 		this.bundler = bundler;
 	}
 
-	// `./${this.config.buildDir}/*`
 	startWatcher = () => {
 		this.resetbuildDir();
 		const watcher = chokidar.watch([`./${this.config.rootDir}/**`], {
