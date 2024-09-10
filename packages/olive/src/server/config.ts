@@ -40,7 +40,10 @@ const readConfig = async (): Promise<OliveConfig> => {
 		port: config?.port ?? 3000,
 		mode: (process.env.MODE as Mode) ?? Mode.Development,
 		enableSPA: config?.enableSPA ?? true,
-		buildDir: process.env.MODE === Mode.Production ? "build" : config?.buildDir ?? "dist",
+		buildDir: ((mode: Mode) => {
+			if (mode === Mode.Production) return "build";
+			return config?.buildDir ?? "dist";
+		})(process.env.MODE as Mode),
 		rootDir: config?.rootDir ?? "app",
 		// if rootDir is missing from entrypoint, add it by default?
 		entrypoints: config?.entrypoints ?? ["index.tsx"],

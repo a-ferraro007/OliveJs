@@ -45,24 +45,4 @@ export class Watcher {
 			console.error(e);
 		}
 	};
-
-	/**
-	 * TODO: Remove
-	 */
-	private removeStaleJSBuilds = () => {
-		const regex = /^index-[A-Za-z0-9]+\.js|index-[A-Za-z0-9]+\.js.map$/;
-		const files = fs.readdirSync(this.config.buildDir);
-		// biome-ignore lint/complexity/noForEach: <explanation>
-		files.forEach((name) => regex.test(name) && fs.unlinkSync(`./${this.config.buildDir}/${name}`));
-	};
-
-	/**
-	 * TODO: Remove
-	 */
-	private removeStaleCSSBuilds = () => {
-		const regex = /^styles-[A-Za-z0-9]+\.css$/;
-		const files = fs.readdirSync(this.config.buildDir);
-		// biome-ignore lint/complexity/noForEach: <explanation>
-		files.forEach((name) => regex.test(name) && fs.unlinkSync(`./${this.config.buildDir}/${name}`));
-	};
 }

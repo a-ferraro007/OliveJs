@@ -1,4 +1,5 @@
 import type { Loader, OnLoadArgs, OnLoadResult, PluginBuild } from "esbuild";
+import path from "node:path";
 
 export default function globalReplacePlugin(str: string) {
 	return {
@@ -9,21 +10,18 @@ export default function globalReplacePlugin(str: string) {
 					// Skip node modules but do not end processing
 					return;
 				}
-				console.log("Processing path: ", args.path);
-				let contents = await Bun.file(args.path).text();
+				let contents: Uint8Array | string | undefined;
 				const extension = args.path.split(".").pop();
 				let loader: Loader = "file";
 				if (extension) {
 					if (extension.match(/css?$/)) {
 						loader = "css";
-						contents = contents.replace(/%PUBLIC%/g, str);
+						contents = (await Bun.file(args.path).text()).replace(/%PUBLIC%/g, str);
 					} else if (extension.match(/jsx?$/) || extension.match(/tsx?$/)) {
 						loader = "jsx";
-						contents = contents.replace(/%PUBLIC%/g, str);
+						contents = (await Bun.file(args.path).text()).replace(/%PUBLIC%/g, str);
 					}
 				}
-				console.log(`Using loader: ${loader} for path: ${args.path}`);
-
 				return {
 					contents,
 					loader,

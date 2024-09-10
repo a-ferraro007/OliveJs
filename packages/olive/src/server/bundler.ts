@@ -2,7 +2,7 @@ import * as es from "esbuild";
 import path from "node:path";
 import { EventEmitter } from "node:events";
 import { Mode, type OliveConfig } from "../../types";
-import { postCSSLoader, indexHTMLPlugin, globalReplacePlugin } from "../plugins";
+import { postCSSLoader, indexHTMLPlugin, globalReplacePlugin, publicDirectoryPlugin } from "../plugins";
 
 const transpiler = new Bun.Transpiler({ trimUnusedImports: true });
 class Bundler {
@@ -56,12 +56,12 @@ class Bundler {
 					".jpeg": "file",
 					".png": "file",
 					".gif": "file",
-					".svg": "file",
+					".svg": "dataurl",
 					".webp": "file",
 				},
-				external: [`/${this.config.publicPath}/*`],
+				external: [`${this.config.publicPath}/*`],
 				plugins: [
-					globalReplacePlugin(`/${this.config.publicPath}`),
+					globalReplacePlugin(`${this.config.publicPath}`),
 					postCSSLoader(this.postCSSConfig, this.config.buildDir),
 					indexHTMLPlugin(this.config),
 				],
@@ -116,8 +116,8 @@ class Bundler {
 		} catch (error) {
 			console.error(error);
 		}
+		return true;
 	};
-
 	resolveDependencies = async (
 		entrypoints: string[],
 		ignoredFiles: Set<string> = new Set(),
@@ -193,17 +193,18 @@ class Bundler {
 			).filter(Boolean) as string[];
 
 			if (resolvedDeps.length > 0) {
+				//TODO: Use or delete
 				// recurse through resolved dependencies
-				await this.resolveDependencies(
-					resolvedDeps,
-					ignoredFiles,
-					dependencies,
-					processedFiles,
-					cssImportMap,
-					assetImportMap,
-					entryKey,
-					depth + 1,
-				);
+				// await this.resolveDependencies(
+				//     resolvedDeps,
+				//     ignoredFiles,
+				//     dependencies,
+				//     processedFiles,
+				//     cssImportMap,
+				//     assetImportMap,
+				//     entryKey,
+				//     depth + 1
+				// );
 			}
 		}
 		return { dependencies, cssImportMap };

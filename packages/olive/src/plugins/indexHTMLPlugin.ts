@@ -65,13 +65,12 @@ const injectFiles = async (
 	for (const asset of assets) {
 		const filepath = asset.path;
 		const ext = path.extname(asset.path);
-		console.log(filepath);
 
-		let targetPath = filepath;
+		const targetPath = filepath;
 		// if (publicPath) {
-		// 	targetPath = joinWithPublicPath(publicPath, path.relative(outDir, filepath));
+		// 	let ttargetPath = joinWithPublicPath(publicPath, path.relative(outDir, filepath));
+		// 	console.log(targetPath, { publicPath });
 		// }
-		// console.log(targetPath, { publicPath });
 
 		switch (ext) {
 			case ".js": {
@@ -98,7 +97,6 @@ const injectFiles = async (
 				link.setAttribute("rel", "stylesheet");
 				link.setAttribute("href", targetPath);
 				document.head.append(link);
-
 				break;
 			}
 			default:
@@ -113,13 +111,6 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 		name: "html-plugin",
 		setup(build) {
 			build.onStart(() => {
-				console.log({
-					"b meta": build.initialOptions.metafile,
-					"b out": build.initialOptions.outdir,
-					"b public": build.initialOptions.publicPath,
-					"config out": config.outDir,
-					"c publicPath": config.publicPath,
-				});
 				if (!build.initialOptions.metafile) {
 					throw new Error("metafile is not enabled");
 				}
@@ -147,7 +138,6 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 				for (const entrypoint of entrypoints) {
 					const outputFilesMap = new Map();
 					outputFilesMap.set(entrypoint.path, entrypoint);
-					// console.log(entrypoint.cssBundle);
 					if (entrypoint.cssBundle) {
 						outputFilesMap.set(entrypoint.cssBundle, { path: entrypoint.cssBundle });
 					}
@@ -158,7 +148,7 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 				// biome-ignore lint/style/noNonNullAssertion: Asserted in build.onStart()
 				const outDir = build.initialOptions.outdir!;
 				// biome-ignore lint/style/noNonNullAssertion: Asserted in build.onStart()
-				const publicPath = build.initialOptions.publicPath!;
+				const publicPath = config.publicPath; //build.initialOptions.publicPath!;
 
 				let faviconPath = "/favicon.ico";
 				let manifestPath = "/manifest.json";
@@ -167,11 +157,13 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 					manifestPath = joinWithPublicPath(publicPath, "manifest.json");
 				}
 
+				console.log({ ...outputFilesCollection });
+
 				const dom = new JSDOM(defaultHtmlTemplate);
 				await injectFiles(dom, outputFilesCollection, outDir, publicPath, config);
 
 				await Bun.write(`${config.outDir}/index.html`, dom.serialize());
-				console.log(`  HTML Plugin Done in ${Date.now() - startTime}ms`);
+				console.log(`HTML Plugin Done in ${Date.now() - startTime}ms`);
 			});
 		},
 	};
