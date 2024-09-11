@@ -2,8 +2,7 @@ import * as es from "esbuild";
 import path from "node:path";
 import { EventEmitter } from "node:events";
 import { Mode, type OliveConfig } from "../../types";
-import Postcss from "postcss";
-import postCSSLoader from "../postCSSPlugin";
+import { postCSSLoader, indexHTMLPlugin, globalReplacePlugin } from "../plugins";
 
 const transpiler = new Bun.Transpiler({ trimUnusedImports: true });
 class Bundler {
@@ -27,40 +26,51 @@ class Bundler {
 	}
 
 	bundle = async () => {
-		let timeString: string;
-		if (this.isFirstBundle) timeString = "🚀 built";
-		else timeString = "🚀 rebuilt";
+		const timeString = ((first) => (first ? "built ✅" : "rebuilt ✅"))(this.isFirstBundle);
 		console.time(timeString);
-		if (!this.isFirstBundle) console.log(`\n 🫒 rebuilding... (~ ${this.stats})`);
 
-		const { dependencies, cssImportMap } = await this.resolveDependencies(this.entrypoints);
-		const cssMap = await this.buildCSS(cssImportMap);
-		// const postCSSPlugin = postCSSLoader(cssMap);
+		if (!this.isFirstBundle) console.log(`\n 🫒 rebuilding... (~ ${this.stats})`);
+		else console.log("\n 🫒 building...");
+		const { dependencies } = await this.resolveDependencies(this.entrypoints);
+		const entryPoints = this.config.enableSPA ? this.entrypoints : this.buildClientEntrypoints(dependencies);
 
 		try {
 			const esBuild = await es.build({
-				entryPoints: this.buildClientEntrypoints(dependencies),
+				entryPoints,
 				bundle: true,
-				outdir: `./${this.config.outDir}`,
+				outdir: `${this.config.outDir}`,
 				sourceRoot: this.config.rootDir,
+				metafile: true,
+				/**
+				 *
+				 * publicPath property needs to match the outDir so imported images
+				 * have the right file path after bundling
+				 */
+				publicPath: this.config.outDir,
+				assetNames: "assets/[name]-[hash]",
+				/**
+				 * TODO: avoid writing to disk in dev mode
+				 */
+				write: true,
 				loader: {
 					".jpg": "file",
 					".jpeg": "file",
 					".png": "file",
 					".gif": "file",
-					".svg": "file",
+					".svg": "dataurl",
 					".webp": "file",
 				},
-				assetNames: "assets/[name]-[hash]",
-				publicPath: `/${this.config.outDir}`,
-				write: true, // figure out how to avoid writing to disk for dev mode
-				plugins: [postCSSLoader(cssMap)],
+				external: [`${this.config.publicPath}/*`],
+				plugins: [
+					globalReplacePlugin(`${this.config.publicPath}`),
+					postCSSLoader(this.postCSSConfig, this.config.buildDir),
+					indexHTMLPlugin(this.config),
+				],
 			});
 
 			/**
-			 * Bun build is throwing bus error when importing and using images in
+			 * 	 Bun build is throwing bus error when importing and using images in
 			 * .tsx files. Falling back to esbuild until I figure out how to resolve this.
-
 			const build = await Bun.build({
 				entrypoints: this.buildClientEntrypoints(dependencies),
 				root: this.config.rootDir,
@@ -92,22 +102,23 @@ class Bundler {
 				return;
 			}
 
-			/**
-			 	Move this into a plugin loader to handle creating the HTML file while bundling?
-			 **/
-			const html = this.buildHTMLDocument(cssMap, "", this.config.sourcemap === "external");
-			Bun.write(`${this.config.outDir}/index.html`, html);
+			if (this.config.mode === Mode.Development) {
+				Bun.write(
+					`${this.config.outDir}/client.js`,
+					Bun.file(await import.meta.resolve("../client/client.js")),
+				);
+			}
 
 			if (this.mode === Mode.Development) this.emitter.emit("bundle", esBuild);
-
 			if (this.isFirstBundle) this.isFirstBundle = false;
+
 			console.timeEnd(timeString);
 			return esBuild;
 		} catch (error) {
 			console.error(error);
 		}
+		return true;
 	};
-
 	resolveDependencies = async (
 		entrypoints: string[],
 		ignoredFiles: Set<string> = new Set(),
@@ -128,16 +139,12 @@ class Bundler {
 
 		for (const entrypoint of entrypoints) {
 			const entryKey = startingKey ?? entrypoint;
-			if (processedFiles.has(entrypoint) || entrypoint.includes(".bun")) {
+			if (processedFiles.has(entrypoint) || entrypoint.match(/\.(jpeg|jpg|png|gif|svg|bun)$/i)) {
 				continue;
 			}
 
 			// get file & read contents
 			const file = await Bun.file(entrypoint);
-
-			if (entrypoint.match(/\.(jpeg|jpg|png|gif|svg)$/i)) {
-				continue;
-			}
 
 			// get import / export list
 			const contents = await file.text();
@@ -187,52 +194,21 @@ class Bundler {
 			).filter(Boolean) as string[];
 
 			if (resolvedDeps.length > 0) {
+				//TODO: Use or delete
 				// recurse through resolved dependencies
-				await this.resolveDependencies(
-					resolvedDeps,
-					ignoredFiles,
-					dependencies,
-					processedFiles,
-					cssImportMap,
-					assetImportMap,
-					entryKey,
-					depth + 1,
-				);
+				// await this.resolveDependencies(
+				//     resolvedDeps,
+				//     ignoredFiles,
+				//     dependencies,
+				//     processedFiles,
+				//     cssImportMap,
+				//     assetImportMap,
+				//     entryKey,
+				//     depth + 1
+				// );
 			}
 		}
 		return { dependencies, cssImportMap };
-	};
-
-	/**
-	 * Possibly move this into the postCSS plugin
-	 */
-	buildCSS = async (cssImportMap: Record<string, string[]>) => {
-		console.time("✅ compiled css");
-		const cssImports = Array.from(Object.values(cssImportMap)).flat();
-		const postcss = Postcss(this.postCSSConfig.plugins);
-		const hasher = new Bun.CryptoHasher("blake2b256");
-		const cssMap = new Map<string, string>();
-		for (const css of cssImports) {
-			const cssFileString = await Bun.file(css).text();
-			hasher.update(cssFileString);
-			const cssHash = hasher.digest("hex").slice(0, 16);
-			const outPath = path.join(this.config.buildDir, `${cssHash}.css`);
-			const processed = await postcss.process(cssFileString, {
-				from: css,
-				to: outPath,
-			});
-			console.log(outPath);
-
-			await Bun.write(outPath, processed.css);
-			cssMap.set(css, outPath.slice(`${this.config.buildDir}/`.length));
-		}
-
-		await Bun.write(
-			path.join(this.config.buildDir, "cssmap.json"),
-			JSON.stringify(Array.from(cssMap.entries()), null, 2),
-		);
-		console.timeEnd("✅ compiled css");
-		return cssMap;
 	};
 
 	private buildClientEntrypoints = (
@@ -241,41 +217,6 @@ class Bundler {
 			exports: string[];
 		}>,
 	) => Array.from(dep.values()).map((dep) => dep.entrypoint);
-
-	private buildHTMLDocument = (cssMap: Map<string, string>, jsHash: string | null, sourcemap: boolean) => {
-		// Work around for vercel deployment - vercel is serviing static build assets
-		// from the root directory instead of the build directory
-		const outDir = this.mode === Mode.Development ? `/${this.config.outDir}` : "";
-
-		let cssLinkTags = "";
-		for (const [_, value] of cssMap) {
-			cssLinkTags += `<link rel="stylesheet" type="text/css" href="${outDir}/${value}" />\n`;
-		}
-		return `<!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta charset="utf-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <link rel="manifest" href="${outDir}/manifest.json">
-                <link rel="shortcut icon" href="${outDir}/favicon.ico">
-
-                <title>Olivejs - Sandbox</title>
-
-                ${cssLinkTags}
-                <script type="module" src="${outDir}/${this.config.rootDir}/index.js"></script>
-                ${sourcemap ? `<script type="application/json" src="${outDir}/index.js.map"></script>` : ""}
-                ${
-									this.mode === Mode.Development
-										? `<script type="module" src="/public/client.js"></script>`
-										: ""
-								}
-            </head>
-            <body>
-                <noscript>You need to enable JavaScript to run this app.</noscript>
-                <div id="root"></div>
-            </body>
-        </html>`;
-	};
 
 	private resolveEntryPoints = (entrypoints: string[], rootDir: string) => {
 		return entrypoints.map((entry) => {

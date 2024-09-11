@@ -6,7 +6,9 @@
     "packages/olive"
   ],
   "dependencies": {
+    "@types/jsdom": "^21.1.6",
     "@types/prompts": "^2.4.9",
+    "jsdom": "^24.0.0",
     "postcss": "^8.4.31"
   },
   "devDependencies": {
