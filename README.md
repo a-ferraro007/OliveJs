@@ -10,5 +10,7 @@
 
 **Todo**
  - client-side router - **in progress**
+ - - fix create-olive scaffolding
  - ssr support
- - data fetching layer or rsc support 
+ - data fetching layer or rsc support
+ 
