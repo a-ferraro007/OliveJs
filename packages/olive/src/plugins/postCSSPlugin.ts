@@ -9,7 +9,7 @@ export default function postCSSLoader(config: any, buildDir: any) {
 		name: "postcss-plugin",
 		setup(build) {
 			build.onStart(() => {
-				console.time("✅ compiled css");
+				console.time("compiled css ✅");
 			});
 			build.onResolve({ filter: /\.css$/i }, (args) => {
 				return {
@@ -38,7 +38,7 @@ export default function postCSSLoader(config: any, buildDir: any) {
 				};
 			});
 			build.onEnd(() => {
-				console.timeEnd("✅ compiled css");
+				console.timeEnd("compiled css ✅");
 			});
 		},
 	};

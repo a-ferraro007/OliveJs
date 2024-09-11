@@ -1,5 +1,5 @@
 import path from "node:path";
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import chokidar from "chokidar";
 import type { Bundler } from "./bundler";
 import type { WatcherConfig } from "../../types";
@@ -14,8 +14,8 @@ export class Watcher {
 		this.bundler = bundler;
 	}
 
-	startWatcher = () => {
-		this.resetbuildDir();
+	startWatcher = async () => {
+		await this.resetbuildDir();
 		const watcher = chokidar.watch([`./${this.config.rootDir}/**`], {
 			ignored: [
 				/(^|[\/\\])\../,
@@ -30,17 +30,17 @@ export class Watcher {
 		});
 
 		watcher.on("all", async (_, stats) => {
-			this.resetbuildDir();
 			this.bundler.stats = stats;
+			await this.resetbuildDir();
 			await this.bundler.bundle();
 		});
 	};
 
-	private resetbuildDir = () => {
+	private resetbuildDir = async () => {
 		const outPath = path.resolve(this.config.buildDir);
 		try {
-			fs.rmSync(outPath, { recursive: true });
-			fs.mkdirSync(outPath);
+			await fs.rm(outPath, { recursive: true });
+			await fs.mkdir(outPath);
 		} catch (e) {
 			console.error(e);
 		}

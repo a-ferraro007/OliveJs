@@ -26,10 +26,11 @@ class Bundler {
 	}
 
 	bundle = async () => {
-		const timeString = ((first) => (first ? "🚀 built" : "🚀 rebuilt"))(this.isFirstBundle);
+		const timeString = ((first) => (first ? "built ✅" : "rebuilt ✅"))(this.isFirstBundle);
 		console.time(timeString);
 
 		if (!this.isFirstBundle) console.log(`\n 🫒 rebuilding... (~ ${this.stats})`);
+		else console.log("\n 🫒 building...");
 		const { dependencies } = await this.resolveDependencies(this.entrypoints);
 		const entryPoints = this.config.enableSPA ? this.entrypoints : this.buildClientEntrypoints(dependencies);
 

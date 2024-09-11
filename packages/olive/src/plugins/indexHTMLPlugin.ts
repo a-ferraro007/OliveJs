@@ -3,6 +3,7 @@ import { JSDOM } from "jsdom";
 import type esbuild from "esbuild";
 import type { OliveConfig } from "../../types";
 import type { Plugin } from "esbuild";
+
 type OutputFilesCollection = (esbuild.Metafile["outputs"][string] & { path: string })[];
 
 const defaultHtmlTemplate = `
@@ -35,8 +36,6 @@ const joinWithPublicPath = (publicPath: string, relPath: string) => {
 	}
 
 	const slash = pub.endsWith("/") ? "" : "/";
-	console.log({ pub, rel }, pub.endsWith("/"), slash, `${pub}${slash}${rel}`);
-
 	return `${pub}${slash}${rel}`;
 };
 
@@ -63,14 +62,28 @@ const injectFiles = async (
 	const document = dom.window.document;
 
 	for (const asset of assets) {
-		const filepath = asset.path;
-		const ext = path.extname(asset.path);
-
-		const targetPath = filepath;
+		const targetPath = asset.path;
+		const ext = path.extname(targetPath);
+		const manifestTest = /manifest\.json/;
+		const faviconTest = /favicon\.ico/;
 		// if (publicPath) {
-		// 	let ttargetPath = joinWithPublicPath(publicPath, path.relative(outDir, filepath));
-		// 	console.log(targetPath, { publicPath });
+		// 	let targetPath = joinWithPublicPath(publicPath, path.relative(outDir, filepath));
 		// }
+
+		if (faviconTest.test(targetPath)) {
+			const link = document.createElement("link");
+			link.setAttribute("rel", "icon");
+			link.setAttribute("href", targetPath);
+			document.head.append(link);
+			continue;
+		}
+		if (manifestTest.test(targetPath)) {
+			const link = document.createElement("link");
+			link.setAttribute("rel", "manifest");
+			link.setAttribute("href", targetPath);
+			document.head.append(link);
+			continue;
+		}
 
 		switch (ext) {
 			case ".js": {
@@ -100,7 +113,6 @@ const injectFiles = async (
 				break;
 			}
 			default:
-				console.log({ asset });
 				break;
 		}
 	}
@@ -117,11 +129,13 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 				if (!build.initialOptions.outdir) {
 					throw new Error("outdir must be set");
 				}
+				if (!build.initialOptions.outdir) {
+					throw new Error("outdir must be set");
+				}
 			});
 
 			build.onEnd(async (result) => {
-				const startTime = Date.now();
-				console.log();
+				// const startTime = Date.now();
 				const configEntrypoints = config.entrypoints.map((e) => `${config.rootDir}/${e}`);
 				const entrypoints = Object.entries(result?.metafile?.outputs || {})
 					.filter(([_, output]) => {
@@ -145,10 +159,9 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 					outputFilesCollection = [...outputFilesCollection, ...outputFilesMap.values()];
 				}
 
-				// biome-ignore lint/style/noNonNullAssertion: Asserted in build.onStart()
-				const outDir = build.initialOptions.outdir!;
-				// biome-ignore lint/style/noNonNullAssertion: Asserted in build.onStart()
-				const publicPath = config.publicPath; //build.initialOptions.publicPath!;
+				// fallback to config for now
+				const outDir = build.initialOptions.outdir ?? config.outDir;
+				const publicPath = config.publicPath;
 
 				let faviconPath = "/favicon.ico";
 				let manifestPath = "/manifest.json";
@@ -157,13 +170,20 @@ export default function indexHTMLPlugin(config: OliveConfig) {
 					manifestPath = joinWithPublicPath(publicPath, "manifest.json");
 				}
 
-				console.log({ ...outputFilesCollection });
+				outputFilesCollection = [
+					...outputFilesCollection,
+					...([{ path: faviconPath }, { path: manifestPath }] as OutputFilesCollection),
+				];
 
 				const dom = new JSDOM(defaultHtmlTemplate);
 				await injectFiles(dom, outputFilesCollection, outDir, publicPath, config);
 
 				await Bun.write(`${config.outDir}/index.html`, dom.serialize());
-				console.log(`HTML Plugin Done in ${Date.now() - startTime}ms`);
+
+				// console.log(
+				// 	`\x1b[1m\x1b[90m[${(Date.now() - startTime).toFixed(2)}ms]\x1b[0m`,
+				// 	"built index.html ✅",
+				// );
 			});
 		},
 	};
