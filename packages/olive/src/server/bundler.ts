@@ -71,8 +71,8 @@ class Bundler {
 			});
 
 			/**
-			 * 	 Bun build is throwing bus error when importing and using images in
-			 * .tsx files. Falling back to esbuild until I figure out how to resolve this.
+			 * 	 Bun build is throwing a bus error when importing and using images in
+			 * .tsx files. Swapping with esbuild until I figure out how to resolve this.
 			const build = await Bun.build({
 				entrypoints: this.buildClientEntrypoints(dependencies),
 				root: this.config.rootDir,
@@ -122,7 +122,7 @@ class Bundler {
 		return true;
 	};
 
-	resolveDependencies = async (
+	private resolveDependencies = async (
 		entrypoints: string[],
 		ignoredFiles: Set<string> = new Set(),
 		dependencies: Set<{ entrypoint: string; exports: string[] }> = new Set(),
