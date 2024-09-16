@@ -1,16 +1,17 @@
 import * as es from "esbuild";
 import path from "node:path";
 import { EventEmitter } from "node:events";
-import { Mode, type OliveConfig } from "../../types";
 import { postCSSLoader, indexHTMLPlugin, globalReplacePlugin } from "../plugins";
+import { Mode, type OliveConfig } from "../../types";
+import type { Transpiler } from "bun";
 
-const transpiler = new Bun.Transpiler({ trimUnusedImports: true });
 class Bundler {
 	private config: OliveConfig;
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	private postCSSConfig: any;
 	private mode: Mode;
 	private entrypoints: string[];
+	private transpiler: Transpiler;
 	isFirstBundle: boolean;
 	stats?: string;
 	emitter: EventEmitter;
@@ -19,10 +20,11 @@ class Bundler {
 	constructor(config: OliveConfig, postCSSConfig: any) {
 		this.mode = config.mode;
 		this.config = config;
+		this.isFirstBundle = true;
 		this.postCSSConfig = postCSSConfig ?? { plugins: [] };
 		this.entrypoints = this.resolveEntryPoints(config.entrypoints, config.rootDir);
 		this.emitter = new EventEmitter();
-		this.isFirstBundle = true;
+		this.transpiler = new Bun.Transpiler({ trimUnusedImports: true });
 	}
 
 	bundle = async () => {
@@ -119,6 +121,7 @@ class Bundler {
 		}
 		return true;
 	};
+
 	resolveDependencies = async (
 		entrypoints: string[],
 		ignoredFiles: Set<string> = new Set(),
@@ -148,7 +151,7 @@ class Bundler {
 
 			// get import / export list
 			const contents = await file.text();
-			const depScan = await transpiler.scan(contents);
+			const depScan = this.transpiler.scan(contents);
 			dependencies.add({ entrypoint, exports: depScan.exports });
 
 			// keep track of processed files
